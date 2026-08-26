@@ -45,11 +45,12 @@ context: |
      constructor, a SQL CHECK constraint, and again inside a `merge()`
      helper — changing one rule meant editing three places.
 
-  4. No abstraction without a second consumer. An interface exists once
-     two things implement it, or a test genuinely needs the seam — not
-     before. Why: Caudal's `platform/clock` was never called anywhere;
-     `httpx.DomainError` was built and every router bypassed it; an
-     OpenAPI code generator was pinned in `tools.go` and never used.
+  4. No package or file exists before something calls it. A helper, a
+     wrapper type, or a generator earns its place by having a caller the
+     moment it's added — not by anticipated future use. Why: Caudal's
+     `platform/clock` was never called anywhere; `httpx.DomainError` was
+     built and every router bypassed it; an OpenAPI code generator was
+     pinned in `tools.go` and never used.
 
   5. No parallel trees. If two features differ only by a noun, they are
      one feature with a field. Why: Caudal's `expenses` and `incomes`
@@ -79,11 +80,22 @@ context: |
 
   ## Architecture direction
 
-  Screaming structure (folders name the domain), but no layer that has
-  not earned its place: no `ports/` package with a single implementation,
-  no `application/` layer for a use case that is a single query. Start
-  flat; split into domain/ports/application/adapters only when a second
-  implementation or a real test seam demands it.
+  Screaming structure, vertical slicing, clean layers — applied
+  uniformly, not earned per slice. Each top-level folder screams a
+  domain (`movements`, not `handlers`) and owns its full stack; inside
+  it, `domain/`, `ports/`, `application/`, `adapters/` separate concerns
+  with dependencies pointing inward, and every slice carries the same
+  set of layer folders — there is no per-slice invention to learn.
+
+  Guardrails, so the layering doesn't decay the way Caudal's did:
+  - A slice never grows a folder the others don't have. Needing one is a
+    signal to re-read the slice boundary, not to add a folder.
+  - No package or file exists before something calls it (rule 4) — an
+    empty layer folder is scaffolding for a change that's about to use
+    it, never a place to park code "for later."
+  - Two features that differ only by a noun stay one slice with a field,
+    never two slices (rule 5) — layering inside a slice must not be used
+    to paper over a slice that should have been merged.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.

@@ -21,10 +21,15 @@ without a corresponding change under `openspec/changes/`.
 
 ## Commands
 
-Not yet defined — filled in once `apps/api` and `apps/web` exist (see the
-`record-and-read-a-cycle` change).
+- `make install` — install all dependencies (pnpm workspace)
+- `make api` — run the API (`apps/api`)
+- `make web` — run the web dev server (`apps/web`)
+- `make dev` — run both together
+- `make test` / `make api-test` — run the Go test suite
+- `make build` — build both apps
+- `make tidy` — `go mod tidy` for `apps/api`
 
 ## Architecture
 
-Screaming structure: folders name the domain, not the framework. See the
-constitution for the rule on not adding a layer before it's earned.
+See the constitution's *Architecture direction* in `openspec/config.yaml`
+for the rule this codebase follows and why.

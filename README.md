@@ -8,7 +8,8 @@ taught: keep every feature simple and extensible, not complete on its
 first implementation. See the project constitution in
 `openspec/config.yaml` for the rules this codebase follows and why.
 
-Status: definition stage. No application code yet — see
-`openspec/changes/` for the first change under design.
+Status: scaffold stage. `apps/api` and `apps/web` are skeletons with no
+product code yet — see `openspec/changes/record-and-read-a-cycle` for
+the first real feature, ready to implement.
 
 Licensed under GPL-3.0.

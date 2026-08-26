@@ -11,6 +11,7 @@ dist/
 coverage.*
 bin/
 tmp/
+/apps/api/api
 
 # IDE / OS
 .vscode/
