@@ -1,0 +1,18 @@
+.env
+
+# Node
+node_modules/
+dist/
+
+# Go
+*.exe
+*.test
+*.out
+coverage.*
+bin/
+tmp/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store

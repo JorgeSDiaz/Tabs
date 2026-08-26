@@ -1,0 +1,108 @@
+schema: spec-driven
+
+context: |
+  Language: en
+  All artifacts must be written in en.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  # Tabs — project constitution
+
+  Tabs is the successor to Caudal, a personal finance tracker (github.com
+  private repo) that grew past the point where adding a feature was cheap.
+  Caudal's own code is the evidence base for every rule below: it is not
+  hypothetical caution, it is what actually happened.
+
+  ## Product
+
+  Tabs helps one person keep a faithful record of money in and out, and
+  read back their own habits over time — organized around their own
+  financial cycle (a boundary day each month), not the calendar month.
+  Single user, local use across multiple machines, Go + React, Postgres
+  hosted on Neon (no Docker volumes to move between machines).
+
+  ## Non-goals (do not build these until explicitly re-opened)
+
+  - Credit/debt modeling: rates, credit limits, cutoff days, management
+    fees, interest-free installments. Paying a card is just a movement.
+  - Multi-currency. One currency only.
+  - Recurring movements or a calendar view.
+  - Budgets, spending limits, or goals/alerts.
+
+  ## Rules
+
+  1. Ship the smallest usable slice, then use it. A change is not done
+     when it compiles; it is done after a real cycle of use. Why: Caudal
+     built recurrences + a calendar view on 2026-07-11 and deleted both on
+     2026-07-12 — a week of real use would have said no sooner.
+
+  2. A feature enters with the shape its current use requires, not the
+     shape its possible future use might require. Why: Caudal's `NewDebt`
+     took 13 positional parameters for card/loan variants that a single
+     migration re-normalized nine days after the feature shipped.
+
+  3. One rule, one place. Every invariant is validated in exactly one
+     layer. Why: Caudal validated the same money/date/enum rules in a Go
+     constructor, a SQL CHECK constraint, and again inside a `merge()`
+     helper — changing one rule meant editing three places.
+
+  4. No abstraction without a second consumer. An interface exists once
+     two things implement it, or a test genuinely needs the seam — not
+     before. Why: Caudal's `platform/clock` was never called anywhere;
+     `httpx.DomainError` was built and every router bypassed it; an
+     OpenAPI code generator was pinned in `tools.go` and never used.
+
+  5. No parallel trees. If two features differ only by a noun, they are
+     one feature with a field. Why: Caudal's `expenses` and `incomes`
+     were near-byte-identical clones across backend and frontend — every
+     change had to be made twice.
+
+  6. A promise in the docs is a checked claim. If the README says backup
+     exists, a test proves it exports and restores everything it claims
+     to. Why: Caudal's backup silently dropped profile, categories,
+     financial products, and the expense-to-product link.
+
+  7. Names match reality across every layer. If the table says
+     `financial_product`, the code does not still say `debt`. Why: Caudal
+     kept the old name in Go after a migration normalized the schema,
+     and papered over the mismatch with a 40-line SQL CASE projection.
+
+  8. The spec changes before the code. If implementation reveals the spec
+     was wrong, fix the spec and redo the change — do not quietly patch
+     around it in code.
+
+  9. Nothing agent-facing is tied to one agent. Rules live in this one
+     file (`openspec/config.yaml`), read identically by Claude Code,
+     Codex, and OpenCode. Per-tool files only point here, never restate
+     the rules. Why: Caudal's `AGENTS.md` and `CLAUDE.md` were
+     byte-identical except for the title line — the exact duplication
+     rule 3/5 exist to prevent, present in its own scaffolding.
+
+  ## Architecture direction
+
+  Screaming structure (folders name the domain), but no layer that has
+  not earned its place: no `ports/` package with a single implementation,
+  no `application/` layer for a use case that is a single query. Start
+  flat; split into domain/ports/application/adapters only when a second
+  implementation or a real test seam demands it.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
