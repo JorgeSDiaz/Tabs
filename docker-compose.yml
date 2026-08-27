@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: tabs
+      POSTGRES_PASSWORD: tabs
+      POSTGRES_DB: tabs
+    ports:
+      - "5432:5432"
+    volumes:
+      - tabs-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tabs -d tabs"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  tabs-db-data:

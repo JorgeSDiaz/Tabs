@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Tabs is a personal finance tracker: Go API + React web app, Postgres on Neon.
+Tabs is a personal finance tracker: Go API + React web app, Postgres.
 
 ## Before proposing or implementing any change
 
@@ -28,6 +28,9 @@ without a corresponding change under `openspec/changes/`.
 - `make test` / `make api-test` — run the Go test suite
 - `make build` — build both apps
 - `make tidy` — `go mod tidy` for `apps/api`
+- `make db-up` — start the local Postgres container (blocks until healthy)
+- `make db-down` — stop the local Postgres container
+- `make db-reset` — wipe the local database volume and start it fresh
 
 ## Commit messages
 

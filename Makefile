@@ -1,4 +1,4 @@
-.PHONY: install api web dev test api-test build tidy
+.PHONY: install api web dev test api-test build tidy db-up db-down db-reset
 
 install:
 	pnpm install
@@ -23,3 +23,13 @@ build:
 
 tidy:
 	cd apps/api && go mod tidy
+
+db-up:
+	docker compose up -d --wait
+
+db-down:
+	docker compose down
+
+db-reset:
+	docker compose down -v
+	$(MAKE) db-up

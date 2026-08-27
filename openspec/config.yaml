@@ -17,8 +17,11 @@ context: |
   Tabs helps one person keep a faithful record of money in and out, and
   read back their own habits over time — organized around their own
   financial cycle (a boundary day each month), not the calendar month.
-  Single user, local use across multiple machines, Go + React, Postgres
-  hosted on Neon (no Docker volumes to move between machines).
+  Single user, local use across multiple machines, Go + React. The
+  ledger lives on Neon — the one copy that must follow the user between
+  machines, which is why there are no database volumes to carry around.
+  Development runs against a disposable local Postgres container that
+  holds nothing worth moving and is reset on demand.
 
   ## Non-goals (do not build these until explicitly re-opened)
 
