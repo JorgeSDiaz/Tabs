@@ -22,6 +22,7 @@ func (h *Handler) Register(mux *http.ServeMux) {
 type categoryJSON struct {
 	ID        int64  `json:"id"`
 	Name      string `json:"name"`
+	Direction string `json:"direction"`
 	SortOrder int    `json:"sort_order"`
 }
 
@@ -36,7 +37,7 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 
 	out := make([]categoryJSON, 0, len(categories))
 	for _, c := range categories {
-		out = append(out, categoryJSON{ID: c.ID, Name: c.Name, SortOrder: c.SortOrder})
+		out = append(out, categoryJSON{ID: c.ID, Name: c.Name, Direction: c.Direction, SortOrder: c.SortOrder})
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

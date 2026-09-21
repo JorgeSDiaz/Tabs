@@ -113,7 +113,8 @@ func writeDomainError(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, domain.ErrInvalidAmount),
 		errors.Is(err, domain.ErrInvalidDirection),
-		errors.Is(err, domain.ErrUnknownCategory):
+		errors.Is(err, domain.ErrUnknownCategory),
+		errors.Is(err, domain.ErrCategoryDirectionMismatch):
 		writeError(w, http.StatusBadRequest, err.Error())
 	case errors.Is(err, domain.ErrNotFound):
 		writeError(w, http.StatusNotFound, err.Error())

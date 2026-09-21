@@ -13,10 +13,11 @@ const (
 )
 
 var (
-	ErrInvalidAmount    = errors.New("amount must be positive")
-	ErrInvalidDirection = errors.New(`direction must be "in" or "out"`)
-	ErrUnknownCategory  = errors.New("category does not exist")
-	ErrNotFound         = errors.New("movement not found")
+	ErrInvalidAmount             = errors.New("amount must be positive")
+	ErrInvalidDirection          = errors.New(`direction must be "in" or "out"`)
+	ErrUnknownCategory           = errors.New("category does not exist")
+	ErrCategoryDirectionMismatch = errors.New("category direction does not match movement direction")
+	ErrNotFound                  = errors.New("movement not found")
 )
 
 type Movement struct {
@@ -30,7 +31,8 @@ type Movement struct {
 }
 
 // NewMovement is the single place amount and direction are validated.
-// Category existence is enforced once, by the foreign key on write.
+// The category pairing — it must exist and carry this movement's
+// direction — is enforced once, by the foreign keys on write.
 func NewMovement(amountCents int64, direction Direction, categoryID int64, occurredOn time.Time, note string) (Movement, error) {
 	if amountCents <= 0 {
 		return Movement{}, ErrInvalidAmount

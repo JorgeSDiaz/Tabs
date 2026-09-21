@@ -2,102 +2,120 @@
 
 ## Context
 
-See `proposal.md` — Why, for motivation. The state that shapes the
-approach:
+See `proposal.md` — Why, for motivation. State that shapes the approach:
 
-- `MovementForm.tsx` (movements slice, web) already defaults the date to
-  `today()` from `shared/lib/money.ts`, and already keeps `direction`,
-  `categoryId`, and `occurredOn` after a save because the component
-  stays mounted and only `amount`/`note` are reset. Those two
-  requirements from the spec delta are therefore lock-in work, not new
-  code.
-- Categories are a fixed seeded set with no kind/direction column
-  (`001_category.sql`); the API returns them ordered by
-  `sort_order, name`. Only "Income" is income-flavored; the other nine
-  are expense-flavored.
+- A first pass (commit `723c1f2`) shipped focus-after-save and a
+  frontend-only priority ordering of categories (`IN_PRIORITY` /
+  `OUT_PRIORITY` name lists + `orderedForDirection`). The user then
+  asked for real separation: the dropdown shows only the selected
+  direction's categories. Hiding categories makes the in/out split a
+  domain fact, not a UI preference — so the split moves into the data.
+- `MovementForm.tsx` already defaults the date to `today()`
+  (`shared/lib/money.ts`) and keeps `direction`, `categoryId`, and
+  `occurredOn` after a save (only `amount`/`note` reset). Those
+  requirements are lock-in work, not new code.
+- Category existence is enforced by the FK on `movement.category_id`
+  (see the comment in `NewMovement`); the movements adapter maps FK
+  violation 23503 to a 400. That is the established place for
+  relational movement↔category rules.
 - The web app has no test runner (Go tests only) and no persistence
-  layer (no localStorage usage anywhere).
-- What is actually new: focusing the amount field, and ordering the
-  category choices by the selected direction.
+  layer; the dev DB (`make db-up`) is disposable and currently holds
+  zero movements, so adding constraints cannot fail on stale rows
+  there.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- All "ready to log" form behavior lives in the web layer; the API and
-  database are untouched.
-- The in/out category priority rule lives in exactly one place
+- Each seeded category carries its direction as data; the frontend
+  filter and the backend check read the same fact.
+- The direction↔category pairing is validated in exactly one layer
   (constitution rule 3).
+- The form's "ready to log" behavior (focus, defaults, memory) is
+  specified and preserved.
 
 **Non-Goals:**
-- No per-category kind in the schema, and no migration, even though the
-  ordering is conceptually a category attribute (see Decision 1).
-- No new web test infrastructure for this change.
+- No user-facing create/rename/deactivate of categories; the seed and
+  its directions are still configuration, not editable.
+- No server-side validation beyond the FK: amount, direction, and date
+  keep their existing single layers.
 
 ## Decisions
 
-### 1. Priority ordering is a frontend rule, not a `kind` column
+### 1. Direction is a column on `category`, seeded, not a frontend list
 
-Add no database/API change. `apps/web/src/features/categories/domain/category.ts`
-grows one exported helper, `orderedForDirection(categories, direction)`,
-plus two module-private constants:
+Migration `004_category_direction.sql`:
 
-- `IN_PRIORITY`: names of categories that lead when direction is `in` —
-  `['Income']`.
-- `OUT_PRIORITY`: names that lead when direction is `out` —
-  `['Groceries', 'Eating out', 'Transport', 'Housing', 'Subscriptions']`
-  (the everyday-spend set).
+- `ALTER TABLE category ADD COLUMN direction TEXT` with a
+  `CHECK (direction IN ('in','out'))` (backfill, then `SET NOT NULL`).
+- Backfill: `Income` → `in`; the nine expense names → `out`.
+- Seed rows added: `Salary`, `Bonus`, `Reimbursement`, `Gift`
+  (`in`, sort_order 11–14).
+- `UNIQUE (id, direction)` on `category` — needed only as the FK
+  target — plus the composite FK from Decision 3.
 
-Match is by category name: names are UNIQUE in the seeded set and
-renaming does not exist, so a name is a stable identifier today.
-Categories whose name appears in the active priority list move to the
-top in the list's own order; everything else keeps the server order.
-The exact lists are one-line constants the user can tune after real use
-(rule 1 — ship, then use).
-
-*Alternative considered:* a nullable `kind` column on `category`,
-exposed in the API. Rejected: the category set is fixed by the
-`movements` spec ("Seeded categories"), nothing can set or edit the
-value, and a column with no writer is scaffolding for future use
-(rules 2 and 4). The trigger to move this into data is the day category
-creation/rename is opened — the helper's signature already isolates the
-change to one call site.
+The frontend name lists and `orderedForDirection` are deleted; a pure
+`forDirection` filter replaces them. *Alternative kept as-is:* the
+committed frontend-list design. Rejected now because the lists are
+disjoint (a hidden category is a domain fact, not an ordering choice)
+and because the API must enforce the same pairing — a UI-only rule
+would leave the two sources of truth Caudal's rule 5/7 exist to
+prevent.
 
 ### 2. Programmatic focus via `useRef` + `useEffect`, not `autoFocus`
 
-`MovementForm` holds a `useRef<HTMLInputElement>` on the amount field,
-focused once on mount via `useEffect`, and re-focused at the end of the
-`onSubmit` success path. `autoFocus` would cover mount but not
-refocus-after-save, and React warns about it; one ref covers both
-requirements. No shared "focus manager" abstraction — two lines in one
-component (rules 4/5).
+(As implemented in the first pass.) `MovementForm` holds a
+`useRef<HTMLInputElement>` on the amount field, focused on mount via
+`useEffect`, and re-focused at the end of the `onSubmit` success path.
+No shared "focus manager" abstraction.
 
-### 3. Direction change never touches the selected category
+### 3. Direction↔category match is enforced once — by a composite FK
 
-`orderedForDirection` runs at render time over the list; it does not
-reassign `categoryId`. A user who selected "Other" under `out` and flips
-to `in` keeps "Other" selected. Silently changing a user's selection on
-a navigation event is the failure mode to avoid, and it is free to
-prevent.
+`movement (category_id, direction) REFERENCES category (id, direction)`,
+named `movement_category_direction_fkey` in the migration. A mismatched
+(or nonexistent) category is physically unwritable; the movements
+postgres adapter maps a violation of the named constraint to
+`domain.ErrCategoryDirectionMismatch` (400 with a distinct message) and
+keeps the existing mapping of `movement_category_id_fkey` to
+`ErrUnknownCategory`.
 
-### 4. Session memory stays component state — no localStorage
+*Alternatives considered:* an application-service check reading
+category direction through a new cross-slice port — rejected: extra
+port + wiring for an invariant the database guarantees in one line, and
+the FK would still be needed to keep the promise atomic against
+concurrent writes; trusting the frontend filter alone — rejected: the
+API must stay honest for direct calls. The existing simple FK is kept
+because it preserves the clearer "key is not present" message for
+unknown ids.
+
+### 4. Direction change resets the selected category
+
+The two filtered lists are disjoint, so any category selected before a
+direction change cannot exist in the new list. Keeping its id would
+render a select whose value is absent from the options and submit a
+movement the API rejects. The onChange therefore resets `categoryId` to
+unselected. This replaces the first pass's "selection survives a
+direction change" rule, which only made sense while every category
+remained in the list.
+
+### 5. Session memory stays component state — no localStorage
 
 After a save the form keeps `direction`, `categoryId`, `occurredOn`;
-after a reload everything returns to defaults. This is the existing
-behavior; the spec delta pins it. Persisting the last-used date was
-considered and explicitly dropped from scope at the user's choice: a
-fresh load already shows today, which is right for the common case, and
-storage would add a rule with no second user story (rule 2).
+after a reload everything returns to defaults. Persisting the last-used
+date was explicitly dropped from scope at the user's choice (a fresh
+load already shows today; rule 2).
 
 ## Risks / Trade-offs
 
-- [Priority lists keyed by name drift if categories ever gain rename] →
-  Renaming doesn't exist and the spec forbids it; if category CRUD is
-  opened later, Decision 1 already defines the migration path (name
-  lists → column, one call site to switch).
-- [Autofocus pops the on-screen keyboard on mobile] → Single-user local
-  app, desktop-first; the alternative (never focus) is the problem being
-  fixed. Accept and observe during use (rule 1).
-- [No web tests, so the four requirements are validated manually] →
-  Each spec-delta scenario is a concrete manual check-list item in
-  `tasks.md`; web test tooling is its own future change, not smuggled
-  in here (rule 4).
+- [A ledger with historical mismatched movements would fail the FK
+  creation] → dev DB verified empty; before applying to Neon, check
+  `SELECT count(*) FROM movement m JOIN category c ON c.id=m.category_id
+  WHERE c.direction <> m.direction` and clean or add the constraint
+  `NOT VALID` first if the user prefers.
+- [Constraint-name-based error mapping breaks if the constraint is
+  renamed] → the name is set in the same migration that defines it and
+  referenced in the one adapter that maps it; fall-through stays
+  "unknown category", so a rename degrades the message, never a 500.
+- [Autofocus pops the on-screen keyboard on mobile] → single-user local
+  app, desktop-first; accept and observe during use (rule 1).
+- [No web tests, so scenarios are validated manually] → group 5 tasks
+  walk every scenario; web test tooling stays its own future change.

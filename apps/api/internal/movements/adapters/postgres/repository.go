@@ -32,6 +32,9 @@ func (r *Repository) Create(ctx context.Context, m domain.Movement) (domain.Move
 	out, err := scanMovement(row)
 	if err != nil {
 		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok && pgErr.Code == "23503" {
+			if pgErr.ConstraintName == "movement_category_direction_fkey" {
+				return domain.Movement{}, domain.ErrCategoryDirectionMismatch
+			}
 			return domain.Movement{}, domain.ErrUnknownCategory
 		}
 		return domain.Movement{}, err

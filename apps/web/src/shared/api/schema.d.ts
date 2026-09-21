@@ -114,6 +114,11 @@ export interface components {
             /** Format: int64 */
             id: number;
             name: string;
+            /**
+             * @description Only movements with this direction may use the category
+             * @enum {string}
+             */
+            direction: "in" | "out";
             sort_order: number;
         };
         CurrentCycle: {
@@ -209,7 +214,7 @@ export interface operations {
                     "application/json": components["schemas"]["Movement"];
                 };
             };
-            /** @description Invalid amount, direction, date, or unknown category */
+            /** @description Invalid amount, direction, or date; unknown category; or category of the other direction */
             400: {
                 headers: {
                     [name: string]: unknown;

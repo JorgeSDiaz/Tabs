@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Category } from '../../../categories/domain/category'
-import { orderedForDirection } from '../../../categories/domain/category'
+import { forDirection } from '../../../categories/domain/category'
 import { errorMessage } from '../../../../shared/lib/error'
 import { today } from '../../../../shared/lib/money'
 import type { Direction, MovementInput } from '../../domain/movement'
@@ -79,7 +79,13 @@ export function MovementForm({ categories, onSubmit }: Props) {
           Direction
           <select
             value={direction}
-            onChange={(e) => setDirection(e.target.value as Direction)}
+            onChange={(e) => {
+              setDirection(e.target.value as Direction)
+              // The filtered lists are disjoint; keep a selected category
+              // across the switch and the form would submit a pairing the
+              // API rejects.
+              setCategoryId('')
+            }}
           >
             <option value="out">Out</option>
             <option value="in">In</option>
@@ -95,7 +101,7 @@ export function MovementForm({ categories, onSubmit }: Props) {
             <option value="" disabled>
               Choose...
             </option>
-            {orderedForDirection(categories, direction).map((c) => (
+            {forDirection(categories, direction).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>

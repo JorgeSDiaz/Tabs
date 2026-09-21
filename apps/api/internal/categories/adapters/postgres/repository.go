@@ -17,7 +17,7 @@ func NewRepository(db *sql.DB) *Repository {
 
 func (r *Repository) List(ctx context.Context) ([]domain.Category, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, name, sort_order FROM category ORDER BY sort_order, name`)
+		`SELECT id, name, direction, sort_order FROM category ORDER BY sort_order, name`)
 	if err != nil {
 		return nil, err
 	}
@@ -26,7 +26,7 @@ func (r *Repository) List(ctx context.Context) ([]domain.Category, error) {
 	categories := []domain.Category{}
 	for rows.Next() {
 		var c domain.Category
-		if err := rows.Scan(&c.ID, &c.Name, &c.SortOrder); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Direction, &c.SortOrder); err != nil {
 			return nil, err
 		}
 		categories = append(categories, c)

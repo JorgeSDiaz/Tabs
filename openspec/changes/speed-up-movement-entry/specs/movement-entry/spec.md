@@ -4,7 +4,8 @@
 
 Defines the behavior of the movement-recording form on the first screen:
 it is always ready to log an `in` or `out` movement with no prior setup,
-through focus, defaults, category priority, and short-term memory.
+through focus, defaults, direction-filtered categories, and short-term
+memory.
 
 ## ADDED Requirements
 
@@ -31,27 +32,26 @@ interaction with the date field.
 - **WHEN** the form appears on a fresh load of the app
 - **THEN** the date field shows today's local date
 
-### Requirement: Categories prioritized by direction
-The form SHALL order its category choices by the currently selected
-direction: the priority categories for that direction appear at the top
-of the list, in priority order, followed by all remaining categories in
-their listed order. No category is hidden, and re-ordering SHALL NOT
-change the currently selected category.
+### Requirement: Categories filtered by direction
+The form SHALL list as category choices only the categories whose
+direction matches the currently selected direction: when the direction
+is `in`, the choices are exactly the `in` categories; when it is `out`,
+the choices are exactly the `out` categories. Categories keep their
+listed order within each direction.
 
-#### Scenario: Income priorities lead when direction is in
+#### Scenario: In direction offers only income categories
 - **WHEN** the user selects direction `in`
-- **THEN** the categories that are priority for `in` appear first in the
-  category list
+- **THEN** the category choices are exactly the categories whose
+  direction is `in`
 
-#### Scenario: Expense priorities lead when direction is out
+#### Scenario: Out direction offers only expense categories
 - **WHEN** the user selects direction `out`
-- **THEN** the categories that are priority for `out` appear first in the
-  category list
+- **THEN** the category choices are exactly the categories whose
+  direction is `out`
 
-#### Scenario: Selection survives a direction change
-- **WHEN** the user changes the direction with a category already
-  selected
-- **THEN** the selected category remains selected
+#### Scenario: Direction change resets the category
+- **WHEN** the user changes the direction with a category selected
+- **THEN** the category field returns to the unselected placeholder
 
 ### Requirement: Last-used values remembered within the session
 After a successful save, the form SHALL keep the direction, category, and

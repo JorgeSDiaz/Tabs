@@ -1,20 +1,32 @@
 # Tasks
 
-## 1. Category priority rule
+## 1. Form readiness (first pass — commit 723c1f2)
 
-- [x] 1.1 In `apps/web/src/features/categories/domain/category.ts`, add module-private `IN_PRIORITY` and `OUT_PRIORITY` name lists (design Decision 1) and export `orderedForDirection(categories, direction)`: priority categories first in their list order, the rest in server order, selection never mutated — verify with `pnpm --dir apps/web build` (tsc) and `pnpm --dir apps/web lint` passing
+- [x] 1.1 Category priority lists + `orderedForDirection` in `category.ts` — SUPERSEDED by 2.1/4.1: direction is now data, not a frontend list
+- [x] 1.2 `MovementForm.tsx`: `useRef` on the amount input, focus on mount — verified live: caret lands in Amount with no click
+- [x] 1.3 `MovementForm.tsx`: refocus amount after a successful save — verified live: amount/note clear, caret returns, direction/category/date kept
+- [x] 1.4 First-pass scenarios walked live (focus, date defaults, ordering, session memory, reload reset); `go test` + web build green
 
-## 2. Form readiness
+## 2. Direction becomes data (backend)
 
-- [x] 2.1 In `MovementForm.tsx`, add a `useRef` on the amount input and focus it on mount via `useEffect` — verify: with `make dev`, opening the app puts the caret in Amount with no click (spec: Focus on first appearance)
-- [x] 2.2 Render the category `<option>`s through `orderedForDirection(categories, direction)` — verify: switching Direction between Out and In reorders the dropdown (Income first for `in`; Groceries/Eating out/Transport/Housing/Subscriptions first for `out`), no option disappears, and a selected category stays selected across the switch
-- [x] 2.3 After a successful save, focus the amount field again (end of the success path in `handleSubmit`) — verify: record two movements in a row; after Save the caret is back in Amount, while direction, category, and date keep the values used (spec: Focus returns after a save; Second movement of the day reuses the setup)
+- [x] 2.1 Add `apps/api/db/migrations/004_category_direction.sql`: `direction` column + `CHECK (in|out)`; backfill Income→`in`, the nine expense names→`out`; seed `Salary`, `Bonus`, `Reimbursement`, `Gift` as `in` (sort_order 11–14); `UNIQUE (id, direction)` on `category`; named composite FK `movement_category_direction_fkey` on `movement (category_id, direction)` — verify: API restart applies 004; `psql` shows 14 categories, each with a direction
+- [x] 2.2 categories slice: `Direction` on `domain.Category`, repository SELECT/scan, `categoryJSON` emits `direction` — verify: `curl /api/v1/categories` shows `"direction"` on every row
+- [x] 2.3 movements postgres adapter: map a violation of `movement_category_direction_fkey` to a new `domain.ErrCategoryDirectionMismatch`, keep `movement_category_id_fkey` → `ErrUnknownCategory`; add the error to `writeDomainError`'s 400 group — verify: `cd apps/api && go test ./...` green; `curl` POST direction `in` + a known `out` category id → 400 with the mismatch message; valid pair → 201
 
-## 3. Verification against the spec delta
+## 3. Contract
 
-- [x] 3.1 Walk every scenario in `specs/movement-entry/spec.md` manually against `make dev` (fresh load focuses Amount and shows today's date; save keeps direction/category/date and clears amount/note; reload resets date to today and unselects the category), confirming the no-change lock-in scenarios hold as written
-- [x] 3.2 Run `make test` (Go suite — must stay green; no API change is expected) and `pnpm --dir apps/web build`, and record the outcome
+- [x] 3.1 `openapi/tabs.yaml`: add required `direction` enum `[in, out]` to the `Category` schema; extend POST /movements 400 description to mention the mismatch — verify: `pnpm --dir apps/web generate:api` regenerates `schema.d.ts` with `direction` and the web build (tsc) passes
 
-## 4. Ship
+## 4. Frontend: filter, not order
 
-- [x] 4.1 Update the web dev loop with one real session of multi-entry use (record several same-day movements) and adjust the two priority lists in 1.1 if the ordering fights real habits, then commit with the `✨` gitmoji prefix
+- [x] 4.1 `category.ts`: delete `IN_PRIORITY`/`OUT_PRIORITY`/`orderedForDirection`; add `forDirection(categories, direction)` filtering by the category's own `direction` — verify: build + lint pass
+- [x] 4.2 `MovementForm.tsx`: options render from `forDirection(categories, direction)`; the Direction `onChange` also resets `categoryId` to unselected — verify live: `in` lists exactly Income/Salary/Bonus/Reimbursement/Gift; `out` lists the nine; selecting a category then switching direction returns the placeholder
+
+## 5. Verification against the spec deltas
+
+- [x] 5.1 Walk every scenario of `specs/movement-entry/spec.md` and the `movements` delta live: fresh load focuses Amount and shows today; filtered lists; reset on switch; save keeps direction/category/date and clears amount/note with focus back; reload resets; POST rejects amount ≤ 0, unknown category, and direction mismatch (curl)
+- [x] 5.2 Run `cd apps/api && go test ./...` and `pnpm --dir apps/web build` + lint, record the outcome
+
+## 6. Ship
+
+- [x] 6.1 One real multi-entry session across both directions; tune the seed's category set via a follow-up change if it fights real habits; commit with the `✨` prefix
