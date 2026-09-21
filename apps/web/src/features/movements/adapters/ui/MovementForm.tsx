@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Category } from '../../../categories/domain/category'
+import { orderedForDirection } from '../../../categories/domain/category'
 import { errorMessage } from '../../../../shared/lib/error'
 import { today } from '../../../../shared/lib/money'
 import type { Direction, MovementInput } from '../../domain/movement'
@@ -18,6 +19,11 @@ export function MovementForm({ categories, onSubmit }: Props) {
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const amountRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    amountRef.current?.focus()
+  }, [])
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -44,6 +50,7 @@ export function MovementForm({ categories, onSubmit }: Props) {
       })
       setAmount('')
       setNote('')
+      amountRef.current?.focus()
     } catch (err) {
       setError(errorMessage(err))
     } finally {
@@ -58,6 +65,7 @@ export function MovementForm({ categories, onSubmit }: Props) {
         <label>
           Amount
           <input
+            ref={amountRef}
             type="number"
             inputMode="decimal"
             min="0.01"
@@ -87,7 +95,7 @@ export function MovementForm({ categories, onSubmit }: Props) {
             <option value="" disabled>
               Choose...
             </option>
-            {categories.map((c) => (
+            {orderedForDirection(categories, direction).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
