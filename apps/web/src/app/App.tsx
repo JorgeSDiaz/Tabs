@@ -11,7 +11,11 @@ import { useMovements } from '../features/movements/application/useMovements'
 import type { MovementInput } from '../features/movements/domain/movement'
 
 function App() {
-  const { categories, error: categoriesError } = useCategories()
+  const {
+    categories,
+    error: categoriesError,
+    create: createCategory,
+  } = useCategories()
   const { cycle, error: cycleError, reload: reloadCycle } = useCurrentCycle()
   const {
     movements,
@@ -40,7 +44,11 @@ function App() {
       <h1>Tabs</h1>
       {error && <p className="error">{error}</p>}
       {cycle && <CycleSummary cycle={cycle} />}
-      <MovementForm categories={categories} onSubmit={handleSubmit} />
+      <MovementForm
+        categories={categories}
+        onSubmit={handleSubmit}
+        onCreateCategory={createCategory}
+      />
       <MovementList
         movements={movements}
         categories={categories}

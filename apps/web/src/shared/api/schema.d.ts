@@ -46,10 +46,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List the seeded categories */
+        /** List all categories */
         get: operations["listCategories"];
         put?: never;
-        post?: never;
+        /** Create a category */
+        post: operations["createCategory"];
         delete?: never;
         options?: never;
         head?: never;
@@ -120,6 +121,11 @@ export interface components {
              */
             direction: "in" | "out";
             sort_order: number;
+        };
+        CategoryInput: {
+            name: string;
+            /** @enum {string} */
+            direction: "in" | "out";
         };
         CurrentCycle: {
             /**
@@ -281,13 +287,64 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Seeded categories, in sort order */
+            /** @description Seeded and user-created categories, in sort order */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": components["schemas"]["Category"][];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryInput"];
+            };
+        };
+        responses: {
+            /** @description Category created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"];
+                };
+            };
+            /** @description Blank name or invalid direction */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A category with that name already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Unexpected server error */
