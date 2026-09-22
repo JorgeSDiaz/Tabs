@@ -74,6 +74,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/widgets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the stored dashboard widget selection */
+        get: operations["getWidgetSettings"];
+        /** Replace the whole dashboard widget selection */
+        put: operations["putWidgetSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -156,6 +174,15 @@ export interface components {
              * @description total_in minus total_out, in cents
              */
             net: number;
+        };
+        WidgetSettings: {
+            /** @description Widget id to enabled. PUT must carry exactly these four ids; the server rejects any other mapping. The ids mirror the Go dashboard domain catalog — changing one means changing both. */
+            widgets: {
+                "net-balance": boolean;
+                "total-income": boolean;
+                "total-expenses": boolean;
+                "category-distribution": boolean;
+            };
         };
         Error: {
             error: string;
@@ -374,6 +401,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CurrentCycle"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getWidgetSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The stored selection, or the all-enabled defaults when the user has never saved one. Unknown stored ids are dropped and missing ids fall back to their default. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WidgetSettings"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    putWidgetSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WidgetSettings"];
+            };
+        };
+        responses: {
+            /** @description Selection stored; the response echoes it */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WidgetSettings"];
+                };
+            };
+            /** @description The mapping has an unknown id, a missing id, or a value that is not a boolean; the stored selection is unchanged */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Unexpected server error */

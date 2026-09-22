@@ -14,6 +14,9 @@ import (
 	cycapp "tabs-api/internal/cycles/application"
 	cychttp "tabs-api/internal/cycles/adapters/http"
 	cycpostgres "tabs-api/internal/cycles/adapters/postgres"
+	dashapp "tabs-api/internal/dashboard/application"
+	dashhttp "tabs-api/internal/dashboard/adapters/http"
+	dashpostgres "tabs-api/internal/dashboard/adapters/postgres"
 	movapp "tabs-api/internal/movements/application"
 	movhttp "tabs-api/internal/movements/adapters/http"
 	movpostgres "tabs-api/internal/movements/adapters/postgres"
@@ -48,11 +51,13 @@ func run() error {
 	movements := movpostgres.NewRepository(db)
 	categories := catpostgres.NewRepository(db)
 	settings := cycpostgres.NewSettingsReader(db)
+	widgets := dashpostgres.NewStore(db)
 
 	mux := http.NewServeMux()
 	movhttp.NewHandler(movapp.NewService(movements, settings)).Register(mux)
 	cathttp.NewHandler(catapp.NewService(categories)).Register(mux)
 	cychttp.NewHandler(cycapp.NewService(settings, movements)).Register(mux)
+	dashhttp.NewHandler(dashapp.NewService(widgets)).Register(mux)
 
 	server := &http.Server{
 		Addr:              ":8080",

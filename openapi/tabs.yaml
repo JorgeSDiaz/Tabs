@@ -157,6 +157,57 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/v1/dashboard/widgets:
+    get:
+      operationId: getWidgetSettings
+      summary: Read the stored dashboard widget selection
+      responses:
+        '200':
+          description: >
+            The stored selection, or the all-enabled defaults when the
+            user has never saved one. Unknown stored ids are dropped and
+            missing ids fall back to their default.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WidgetSettings'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      operationId: putWidgetSettings
+      summary: Replace the whole dashboard widget selection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WidgetSettings'
+      responses:
+        '200':
+          description: Selection stored; the response echoes it
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WidgetSettings'
+        '400':
+          description: >
+            The mapping has an unknown id, a missing id, or a value that
+            is not a boolean; the stored selection is unchanged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     Movement:
@@ -263,6 +314,29 @@ components:
           type: integer
           format: int64
           description: total_in minus total_out, in cents
+
+    WidgetSettings:
+      type: object
+      required: [widgets]
+      properties:
+        widgets:
+          type: object
+          description: >
+            Widget id to enabled. PUT must carry exactly these four ids;
+            the server rejects any other mapping. The ids mirror the Go
+            dashboard domain catalog — changing one means changing both.
+          required:
+            [net-balance, total-income, total-expenses, category-distribution]
+          properties:
+            net-balance:
+              type: boolean
+            total-income:
+              type: boolean
+            total-expenses:
+              type: boolean
+            category-distribution:
+              type: boolean
+          additionalProperties: false
 
     Error:
       type: object

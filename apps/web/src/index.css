@@ -242,3 +242,73 @@ dialog .form-row {
   justify-content: end;
   margin: 16px 0 0;
 }
+
+/* dashboard widgets */
+
+.widget .empty {
+  border: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.stat-value {
+  font-family: var(--mono);
+  font-size: 28px;
+  margin: 0;
+  color: var(--text-h);
+}
+
+.stat-value.in {
+  color: var(--positive);
+}
+
+.stat-value.out {
+  color: var(--negative);
+}
+
+.widget-bar {
+  margin-bottom: 16px;
+}
+
+.switch-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+.switch-row input[type='checkbox'] {
+  appearance: none;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--border);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+  padding: 0;
+  margin: 0;
+}
+
+.switch-row input[type='checkbox']::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  transition: transform 0.15s;
+}
+
+.switch-row input[type='checkbox']:checked {
+  background: var(--accent);
+}
+
+.switch-row input[type='checkbox']:checked::after {
+  transform: translateX(16px);
+}

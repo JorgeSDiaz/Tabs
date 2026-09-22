@@ -1,6 +1,9 @@
 import { useCategories } from '../features/categories/application/useCategories'
 import { CycleSummary } from '../features/cycles/adapters/ui/CycleSummary'
 import { useCurrentCycle } from '../features/cycles/application/useCurrentCycle'
+import { WidgetPicker } from '../features/dashboard/adapters/ui/WidgetPicker'
+import { WidgetSection } from '../features/dashboard/adapters/ui/WidgetSection'
+import { useWidgetSettings } from '../features/dashboard/application/useWidgetSettings'
 import {
   deleteMovement,
   recordMovement,
@@ -22,6 +25,12 @@ function App() {
     error: movementsError,
     reload: reloadMovements,
   } = useMovements()
+  const {
+    settings,
+    ready: widgetsReady,
+    error: settingsError,
+    toggle,
+  } = useWidgetSettings()
 
   async function refresh() {
     await Promise.all([reloadMovements(), reloadCycle()])
@@ -37,17 +46,26 @@ function App() {
     await refresh()
   }
 
-  const error = categoriesError ?? cycleError ?? movementsError
+  const error = categoriesError ?? cycleError ?? movementsError ?? settingsError
 
   return (
     <main className="screen">
       <h1>Tabs</h1>
       {error && <p className="error">{error}</p>}
-      {cycle && <CycleSummary cycle={cycle} />}
+      {/* Pinned first: recording never depends on widget state. */}
       <MovementForm
         categories={categories}
         onSubmit={handleSubmit}
         onCreateCategory={createCategory}
+      />
+      {cycle && <CycleSummary cycle={cycle} />}
+      <WidgetPicker settings={settings} onToggle={toggle} />
+      <WidgetSection
+        ready={widgetsReady}
+        settings={settings}
+        cycle={cycle}
+        movements={movements}
+        categories={categories}
       />
       <MovementList
         movements={movements}
