@@ -31,6 +31,14 @@ without a corresponding change under `openspec/changes/`.
 - `make db-up` — start the local Postgres container (blocks until healthy)
 - `make db-down` — stop the local Postgres container
 - `make db-reset` — wipe the local database volume and start it fresh
+- `make prod-up` — build and run the production stack: api+web containers
+  against the Neon ledger, ports 8091 (api) and 8090 (web)
+- `make prod-down` — stop the production stack
+
+Run modes: **dev** = host processes against the disposable local
+container (`make dev`, ports 8080/5173); **prod** = `make prod-up`
+containers against Neon (ports 8091/8090). The Neon connection string
+lives only in the gitignored `.env.prod`.
 
 ## Commit messages
 

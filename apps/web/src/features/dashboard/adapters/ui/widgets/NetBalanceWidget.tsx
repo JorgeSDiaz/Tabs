@@ -1,49 +1,50 @@
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
-import { formatCents } from '../../../../../shared/lib/money'
+import { amountScale, formatCents } from '../../../../../shared/lib/money'
 import type { Balance } from '../../../../cycles/domain/cycle'
 
-// Fixed hex colors rather than theme variables: recharts paints SVG
-// presentation attributes, and these read fine on both themes.
-const COLORS = { in: '#22c55e', out: '#ef4444', net: '#a78bfa' }
-const AXIS = '#9ca3af'
-const GRID = 'rgba(128, 128, 128, 0.25)'
-
 export function NetBalanceWidget({ balance }: { balance: Balance }) {
-  const rows = [
-    { label: 'In', value: balance.total_in, color: COLORS.in },
-    { label: 'Out', value: balance.total_out, color: COLORS.out },
-    { label: 'Net', value: balance.net, color: COLORS.net },
-  ]
+  const { total_in, total_out, net } = balance
+  // Out as a share of what came in; kept is the rest, never below zero.
+  const hasIncome = total_in > 0
+  const outPercent = hasIncome ? Math.round((total_out / total_in) * 100) : 0
+  const keptPercent = hasIncome ? Math.max(0, 100 - outPercent) : 0
+  const outWidth = Math.min(outPercent, 100)
+  const figure = formatCents(net)
+
   return (
-    <section className="widget">
+    <section className="widget net-widget">
       <h2>Net balance</h2>
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={rows}>
-          <CartesianGrid stroke={GRID} vertical={false} />
-          <XAxis dataKey="label" tick={{ fill: AXIS }} stroke={GRID} />
-          <YAxis
-            width={72}
-            tick={{ fill: AXIS }}
-            stroke={GRID}
-            tickFormatter={(value: number) => formatCents(value)}
-          />
-          <Tooltip formatter={(value) => formatCents(Number(value))} />
-          <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-            {rows.map((row) => (
-              <Cell key={row.label} fill={row.color} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      <p
+        className={`net-figure amount-${amountScale(figure)} ${net < 0 ? 'negative' : ''}`}
+      >
+        {figure}
+      </p>
+      {hasIncome ? (
+        <>
+          <div className="split-bar" aria-hidden="true">
+            <span className="split-out" style={{ width: `${outWidth}%` }} />
+            <span
+              className="split-kept"
+              style={{ width: `${100 - outWidth}%` }}
+            />
+          </div>
+          <p className="split-labels">
+            <span className="out">{outPercent}% went out</span>
+            <span className="in">{keptPercent}% kept</span>
+          </p>
+        </>
+      ) : (
+        <p className="split-labels">
+          <span>
+            {total_out > 0
+              ? 'Nothing came in yet this cycle.'
+              : 'Nothing recorded yet this cycle.'}
+          </span>
+        </p>
+      )}
+      <p className="net-line">
+        In <span className="money">{formatCents(total_in)}</span>, out{' '}
+        <span className="money">{formatCents(total_out)}</span>
+      </p>
     </section>
   )
 }

@@ -1,65 +1,134 @@
+import type { CSSProperties, ReactNode } from 'react'
 import type { Category } from '../../../categories/domain/category'
 import type { CurrentCycle } from '../../../cycles/domain/cycle'
 import type { Movement } from '../../../movements/domain/movement'
-import {
-  WIDGETS,
-  type WidgetDefinition,
-  type WidgetSettings,
-} from '../../domain/widgets'
+import { bentoLayout, type Tile } from '../../domain/bentoLayout'
+import { WIDGETS, type WidgetID, type WidgetSettings } from '../../domain/widgets'
 import { CategoryDistributionWidget } from './widgets/CategoryDistributionWidget'
 import { NetBalanceWidget } from './widgets/NetBalanceWidget'
 import { StatTile } from './widgets/StatTile'
 
 type Props = {
+  // The logging streak panel: always the first tile, whatever the widgets do.
+  streak: ReactNode
   ready: boolean
   settings: WidgetSettings | null
   cycle: CurrentCycle | null
   movements: Movement[]
   categories: Category[]
+  colors: Map<number, string>
+  dataError: string | null
+  // Why the widgets cannot be shown at all, when they cannot.
+  unavailable: string | null
 }
 
-export function WidgetSection({ ready, settings, cycle, movements, categories }: Props) {
+const LABELS = new Map(WIDGETS.map((widget) => [widget.id, widget.label]))
+
+// Placement goes through custom properties so the stylesheet can drop it
+// below the wide breakpoint, where every tile takes the full width.
+function placement(tile: Tile): CSSProperties {
+  return {
+    '--col': `${tile.col} / span ${tile.colSpan}`,
+    '--row': `${tile.row} / span ${tile.rowSpan}`,
+  } as CSSProperties
+}
+
+export function WidgetSection({
+  streak,
+  ready,
+  settings,
+  cycle,
+  movements,
+  categories,
+  colors,
+  dataError,
+  unavailable,
+}: Props) {
   // A placeholder until the selection arrives: never flash the default
   // widget set when the saved one differs.
-  if (!ready || !settings || !cycle) {
-    return <p className="empty">Loading widgets…</p>
+  if (unavailable || !ready || !settings || !cycle) {
+    return (
+      <section className="bento" aria-label="Insights">
+        <div className="bento-full">{streak}</div>
+        {unavailable ? (
+          <p className="empty bento-full">{unavailable}</p>
+        ) : (
+          <div className="loading-state bento-full" role="status">
+            Loading your insights…
+          </div>
+        )}
+      </section>
+    )
   }
 
+  const tiles = bentoLayout(settings)
   return (
-    <>
-      {WIDGETS.map((widget) =>
-        settings[widget.id] ? (
-          <WidgetBody
-            key={widget.id}
-            widget={widget}
-            cycle={cycle}
-            movements={movements}
-            categories={categories}
-          />
-        ) : null,
+    <section className="bento" aria-label="Insights">
+      {tiles.map((tile) => (
+        <div key={tile.id} className="bento-tile" style={placement(tile)}>
+          {tile.id === 'streak' ? (
+            streak
+          ) : tile.id === 'category-distribution' && dataError ? (
+            <p className="error">
+              Category distribution is unavailable: {dataError}
+            </p>
+          ) : (
+            <WidgetBody
+              id={tile.id}
+              cycle={cycle}
+              movements={movements}
+              categories={categories}
+              colors={colors}
+            />
+          )}
+        </div>
+      ))}
+      {tiles.length === 1 && (
+        <p className="insights-hidden bento-full">
+          A little less on your dashboard. Restore insights with Customize.
+        </p>
       )}
-    </>
+    </section>
   )
 }
 
 type BodyProps = {
-  widget: WidgetDefinition
+  id: WidgetID
   cycle: CurrentCycle
   movements: Movement[]
   categories: Category[]
+  colors: Map<number, string>
 }
 
-function WidgetBody({ widget, cycle, movements, categories }: BodyProps) {
-  switch (widget.id) {
+function WidgetBody({ id, cycle, movements, categories, colors }: BodyProps) {
+  switch (id) {
     case 'net-balance':
       return <NetBalanceWidget balance={cycle.balance} />
     case 'total-income':
-      return <StatTile label={widget.label} cents={cycle.balance.total_in} tone="in" />
+      return (
+        <StatTile
+          label={LABELS.get(id) ?? ''}
+          cents={cycle.balance.total_in}
+          count={movements.filter((m) => m.direction === 'in').length}
+          tone="in"
+        />
+      )
     case 'total-expenses':
-      return <StatTile label={widget.label} cents={cycle.balance.total_out} tone="out" />
+      return (
+        <StatTile
+          label={LABELS.get(id) ?? ''}
+          cents={cycle.balance.total_out}
+          count={movements.filter((m) => m.direction === 'out').length}
+          tone="out"
+        />
+      )
     case 'category-distribution':
       return (
-        <CategoryDistributionWidget movements={movements} categories={categories} />
+        <CategoryDistributionWidget
+          movements={movements}
+          categories={categories}
+          colors={colors}
+        />
       )
   }
 }

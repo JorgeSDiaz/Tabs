@@ -14,9 +14,14 @@ import (
 	cycapp "tabs-api/internal/cycles/application"
 	cychttp "tabs-api/internal/cycles/adapters/http"
 	cycpostgres "tabs-api/internal/cycles/adapters/postgres"
+	cycdomain "tabs-api/internal/cycles/domain"
 	dashapp "tabs-api/internal/dashboard/application"
 	dashhttp "tabs-api/internal/dashboard/adapters/http"
 	dashpostgres "tabs-api/internal/dashboard/adapters/postgres"
+	habhttp "tabs-api/internal/habit/adapters/http"
+	habpostgres "tabs-api/internal/habit/adapters/postgres"
+	habapp "tabs-api/internal/habit/application"
+	habports "tabs-api/internal/habit/ports"
 	movapp "tabs-api/internal/movements/application"
 	movhttp "tabs-api/internal/movements/adapters/http"
 	movpostgres "tabs-api/internal/movements/adapters/postgres"
@@ -58,6 +63,7 @@ func run() error {
 	cathttp.NewHandler(catapp.NewService(categories)).Register(mux)
 	cychttp.NewHandler(cycapp.NewService(settings, movements)).Register(mux)
 	dashhttp.NewHandler(dashapp.NewService(widgets)).Register(mux)
+	habhttp.NewHandler(habapp.NewService(habpostgres.NewReader(db), cycleClock{settings: settings})).Register(mux)
 
 	server := &http.Server{
 		Addr:              ":8080",
@@ -69,4 +75,23 @@ func run() error {
 		return err
 	}
 	return nil
+}
+
+// cycleClock resolves the habit's "today" from the cycles settings and
+// domain, so the boundary and time zone rules stay in one place.
+type cycleClock struct {
+	settings *cycpostgres.SettingsReader
+}
+
+func (c cycleClock) Today(ctx context.Context) (habports.Today, error) {
+	settings, err := c.settings.Settings(ctx)
+	if err != nil {
+		return habports.Today{}, err
+	}
+	now := time.Now()
+	return habports.Today{
+		Cycle:    cycdomain.ActiveAt(now, settings),
+		Location: settings.Location,
+		Now:      now,
+	}, nil
 }

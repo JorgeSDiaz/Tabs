@@ -208,6 +208,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /api/v1/habit:
+    get:
+      operationId: getHabit
+      summary: Logging streak, XP and level for the active cycle
+      description: >
+        Derived on every request from the movements that exist now. A day
+        counts as logged when a movement was created on it (in the configured
+        time zone), whatever date the movement carries.
+      responses:
+        '200':
+          description: The habit, or no habit at all on failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habit'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     Movement:
@@ -337,6 +359,75 @@ components:
             category-distribution:
               type: boolean
           additionalProperties: false
+
+    Habit:
+      type: object
+      required: [streak, days, xp, movement_xp, rules]
+      properties:
+        streak:
+          type: object
+          required: [current, today_logged]
+          properties:
+            current:
+              type: integer
+              description: >
+                Consecutive logged days ending today, or yesterday when
+                today is not yet logged. Counts across cycle boundaries.
+            today_logged:
+              type: boolean
+        days:
+          type: array
+          description: Every day of the active cycle, first to last
+          items:
+            type: object
+            required: [date, status]
+            properties:
+              date:
+                type: string
+                format: date
+              status:
+                type: string
+                enum: [logged, missed, today_logged, today_pending, ahead]
+        xp:
+          type: object
+          required: [total, level, level_starts_at, next_level_at]
+          properties:
+            total:
+              type: integer
+              description: XP over every existing movement, all cycles
+            level:
+              type: integer
+            level_starts_at:
+              type: integer
+              description: Total XP at which the current level started
+            next_level_at:
+              type: integer
+              description: Total XP at which the next level starts
+        movement_xp:
+          type: array
+          description: XP earned by each movement dated in the active cycle
+          items:
+            type: object
+            required: [movement_id, xp]
+            properties:
+              movement_id:
+                type: integer
+                format: int64
+              xp:
+                type: integer
+        rules:
+          type: array
+          description: The XP rules the server applies
+          items:
+            type: object
+            required: [id, label, xp]
+            properties:
+              id:
+                type: string
+              label:
+                type: string
+              xp:
+                type: integer
 
     Error:
       type: object

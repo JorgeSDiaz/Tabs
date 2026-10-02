@@ -6,11 +6,13 @@ import type { Category } from '../domain/category'
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     listCategories()
       .then(setCategories)
       .catch((err) => setError(errorMessage(err)))
+      .finally(() => setLoading(false))
   }, [])
 
   // Creation errors propagate to the caller (the form's modal) so they can
@@ -25,5 +27,5 @@ export function useCategories() {
     [],
   )
 
-  return { categories, error, create }
+  return { categories, error, create, loading }
 }

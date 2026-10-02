@@ -7,6 +7,7 @@ export function useCurrentCycle() {
   const [cycle, setCycle] = useState<CurrentCycle | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [version, setVersion] = useState(0)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
@@ -20,12 +21,18 @@ export function useCurrentCycle() {
       .catch((err) => {
         if (!cancelled) setError(errorMessage(err))
       })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
     return () => {
       cancelled = true
     }
   }, [version])
 
-  const reload = useCallback(() => setVersion((v) => v + 1), [])
+  const reload = useCallback(() => {
+    setLoading(true)
+    setVersion((v) => v + 1)
+  }, [])
 
-  return { cycle, error, reload }
+  return { cycle, error, reload, loading }
 }

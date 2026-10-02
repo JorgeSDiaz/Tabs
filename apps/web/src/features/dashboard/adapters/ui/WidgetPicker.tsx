@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { WIDGETS, type WidgetID, type WidgetSettings } from '../../domain/widgets'
+import { Icon, SLIDERS } from '../../../../shared/ui/Icon'
+import {
+  WIDGETS,
+  type WidgetID,
+  type WidgetSettings,
+} from '../../domain/widgets'
 
 type Props = {
   settings: WidgetSettings | null
@@ -19,24 +24,42 @@ export function WidgetPicker({ settings, onToggle }: Props) {
 
   return (
     <div className="widget-bar">
-      <button type="button" disabled={!settings} onClick={() => setOpen(true)}>
+      <button
+        className="customize-button"
+        type="button"
+        disabled={!settings}
+        onClick={() => setOpen(true)}
+      >
+        <Icon>{SLIDERS}</Icon>
         Customize
       </button>
-      <dialog ref={dialogRef} onClose={() => setOpen(false)}>
-        <h3>Dashboard widgets</h3>
+      <dialog
+        ref={dialogRef}
+        onClose={() => setOpen(false)}
+        aria-labelledby="widgets-dialog-title"
+      >
+        <h3 id="widgets-dialog-title">Make room for what matters.</h3>
+        <p className="dialog-description">
+          Choose the insights you want to see. Your selection follows you across
+          devices.
+        </p>
         {settings &&
           WIDGETS.map((widget) => (
             <label key={widget.id} className="switch-row">
+              <span>{widget.label}</span>
               <input
                 type="checkbox"
                 checked={settings[widget.id]}
                 onChange={() => onToggle(widget.id)}
               />
-              {widget.label}
             </label>
           ))}
         <div className="form-row">
-          <button type="button" onClick={() => dialogRef.current?.close()}>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => dialogRef.current?.close()}
+          >
             Done
           </button>
         </div>

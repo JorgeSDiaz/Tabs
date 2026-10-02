@@ -1,25 +1,52 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
+import { CategoryChip } from '../../../categories/adapters/ui/CategoryChip'
 import type { Category } from '../../../categories/domain/category'
 import { forDirection } from '../../../categories/domain/category'
+import { colorFor } from '../../../categories/domain/categoryColors'
 import { errorMessage } from '../../../../shared/lib/error'
 import { today } from '../../../../shared/lib/money'
+import { CHEVRON_DOWN, Icon } from '../../../../shared/ui/Icon'
 import type { Direction, MovementInput } from '../../domain/movement'
+import { DateField } from './DateField'
+import type { CycleSpan } from './DateField'
+
+const TYPES: { value: Direction; label: string }[] = [
+  { value: 'out', label: 'Spent' },
+  { value: 'in', label: 'Received' },
+]
 
 type Props = {
   categories: Category[]
+  // The chart's category colors, so the chip here matches the chart.
+  colors: Map<number, string>
   onSubmit: (input: MovementInput) => Promise<void>
   onCreateCategory: (name: string, direction: Direction) => Promise<Category>
+  categoriesLoading: boolean
+  // XP the last saved movement earned, once the habit has refreshed.
+  savedXp?: number
+  // The active cycle, tinted in the calendar; absent until it has loaded.
+  cycle?: CycleSpan
 }
 
-export function MovementForm({ categories, onSubmit, onCreateCategory }: Props) {
+export function MovementForm({
+  categories,
+  colors,
+  onSubmit,
+  onCreateCategory,
+  categoriesLoading,
+  savedXp,
+  cycle,
+}: Props) {
   const [amount, setAmount] = useState('')
   const [direction, setDirection] = useState<Direction>('out')
   const [categoryId, setCategoryId] = useState<number | ''>('')
-  const [occurredOn, setOccurredOn] = useState(today())
+  // Kept after a save, so the next movement starts on the date just used.
+  const [date, setDate] = useState(today())
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
   const [createError, setCreateError] = useState<string | null>(null)
@@ -52,17 +79,19 @@ export function MovementForm({ categories, onSubmit, onCreateCategory }: Props) 
     }
 
     setBusy(true)
+    setSaved(false)
     setError(null)
     try {
       await onSubmit({
         amount_cents: cents,
         direction,
         category_id: categoryId,
-        occurred_on: occurredOn,
+        occurred_on: date,
         note,
       })
       setAmount('')
       setNote('')
+      setSaved(true)
       amountRef.current?.focus()
     } catch (err) {
       setError(errorMessage(err))
@@ -101,85 +130,148 @@ export function MovementForm({ categories, onSubmit, onCreateCategory }: Props) 
     }
   }
 
+  const selected = categories.find((c) => c.id === categoryId)
+
   return (
     <>
-      <form className="movement-form" onSubmit={handleSubmit}>
-        <h2>Record a movement</h2>
-        <div className="form-row">
-          <label>
-            Amount
-            <input
-              ref={amountRef}
-              type="number"
-              inputMode="decimal"
-              min="0.01"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            Direction
-            <select
-              value={direction}
-              onChange={(e) => {
-                setDirection(e.target.value as Direction)
-                // The filtered lists are disjoint; keep a selected category
-                // across the switch and the form would submit a pairing the
-                // API rejects.
-                setCategoryId('')
-              }}
-            >
-              <option value="out">Out</option>
-              <option value="in">In</option>
-            </select>
-          </label>
-          <label>
-            Category
-            <select value={categoryId} onChange={handleCategoryChange} required>
-              <option value="" disabled>
-                Choose...
-              </option>
-              {forDirection(categories, direction).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
+      <form
+        className="movement-form"
+        aria-label="Record a movement"
+        onSubmit={handleSubmit}
+        onChange={() => setSaved(false)}
+      >
+        <span className="form-status" role="status">
+          {busy
+            ? 'Saving…'
+            : saved
+              ? savedXp === undefined
+                ? 'Movement saved'
+                : `Movement saved · +${savedXp} XP`
+              : ''}
+        </span>
+        <div className="entry-fields">
+          <fieldset className="type-field">
+            <legend>Type</legend>
+            <div className="type-toggle">
+              {TYPES.map((type) => (
+                <label key={type.value}>
+                  <input
+                    className="visually-hidden"
+                    type="radio"
+                    name="direction"
+                    value={type.value}
+                    checked={direction === type.value}
+                    onChange={() => {
+                      setDirection(type.value)
+                      // The filtered lists are disjoint; keep a selected
+                      // category across the switch and the form would submit
+                      // a pairing the API rejects.
+                      setCategoryId('')
+                    }}
+                  />
+                  <span>{type.label}</span>
+                </label>
               ))}
-              <option value="create">Create new…</option>
-            </select>
+            </div>
+          </fieldset>
+          <label className="amount-field">
+            Amount
+            <span className="amount-input">
+              <span aria-hidden="true">$</span>
+              <input
+                ref={amountRef}
+                type="number"
+                inputMode="decimal"
+                min="0.01"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                required
+                placeholder="0"
+              />
+            </span>
           </label>
           <label>
-            Date
-            <input
-              type="date"
-              value={occurredOn}
-              onChange={(e) => setOccurredOn(e.target.value)}
-              required
-            />
+            <span id="movement-category-label">Category</span>
+            <span className="category-select">
+              {selected ? (
+                <CategoryChip
+                  small
+                  name={selected.name}
+                  color={colorFor(colors, selected.id)}
+                />
+              ) : (
+                <span className="category-chip small unset" aria-hidden="true" />
+              )}
+              <select
+                aria-labelledby="movement-category-label"
+                value={categoryId}
+                onChange={handleCategoryChange}
+                required
+                disabled={categoriesLoading}
+              >
+                <option value="" disabled>
+                  {categoriesLoading
+                    ? 'Loading categories…'
+                    : 'Choose a category'}
+                </option>
+                {forDirection(categories, direction).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+                <option value="create">Create new…</option>
+              </select>
+              <span className="select-chevron">
+                <Icon size={20}>{CHEVRON_DOWN}</Icon>
+              </span>
+            </span>
           </label>
-        </div>
-        <div className="form-row">
-          <label className="grow">
-            Note
+          <DateField
+            value={date}
+            onChange={(picked) => {
+              setDate(picked)
+              // The calendar's buttons fire no form change event.
+              setSaved(false)
+            }}
+            cycle={cycle}
+          />
+          <label className="note-field">
+            <span>
+              Note <span className="optional">(optional)</span>
+            </span>
             <input
               type="text"
               value={note}
               onChange={(e) => setNote(e.target.value)}
+              placeholder="What was it for?"
             />
           </label>
-          <button type="submit" disabled={busy}>
-            {busy ? 'Saving...' : 'Save'}
+          <button
+            className="primary-button log-button"
+            type="submit"
+            disabled={busy || categoriesLoading}
+          >
+            {busy ? 'Saving…' : 'Log it'}
           </button>
         </div>
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
       </form>
       <dialog
         ref={dialogRef}
         className="category-modal"
+        aria-labelledby="category-dialog-title"
+        onCancel={() => setCreating(false)}
         onClose={() => setCreating(false)}
       >
-        <h3>New category</h3>
+        <h3 id="category-dialog-title">New category</h3>
+        <p className="dialog-description">
+          A home for this kind of {direction === 'in' ? 'income' : 'expense'}.
+        </p>
         <form onSubmit={handleCreateSubmit}>
           <label>
             Name
@@ -189,12 +281,20 @@ export function MovementForm({ categories, onSubmit, onCreateCategory }: Props) 
               onChange={(e) => setNewName(e.target.value)}
             />
           </label>
-          {createError && <p className="error">{createError}</p>}
+          {createError && (
+            <p className="error" role="alert">
+              {createError}
+            </p>
+          )}
           <div className="form-row">
             <button type="button" onClick={() => dialogRef.current?.close()}>
               Cancel
             </button>
-            <button type="submit" disabled={busyCreate}>
+            <button
+              className="primary-button"
+              type="submit"
+              disabled={busyCreate}
+            >
               {busyCreate ? 'Creating...' : 'Create and use'}
             </button>
           </div>
