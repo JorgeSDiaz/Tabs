@@ -5,14 +5,19 @@ import type { Category } from '../../../categories/domain/category'
 import { colorFor } from '../../../categories/domain/categoryColors'
 import { formatCents } from '../../../../shared/lib/money'
 import { errorMessage } from '../../../../shared/lib/error'
-import { Icon, TRASH } from '../../../../shared/ui/Icon'
-import type { Movement } from '../../domain/movement'
+import { Icon, PENCIL, TRASH } from '../../../../shared/ui/Icon'
+import type { Movement, MovementInput } from '../../domain/movement'
+import type { CycleSpan } from './DateField'
+import { MovementEditDialog } from './MovementEditDialog'
 
 type Props = {
   movements: Movement[]
   categories: Category[]
   colors: Map<number, string>
+  onEdit: (id: number, input: MovementInput) => Promise<void>
   onDelete: (id: number) => Promise<void>
+  // The active cycle, tinted in the edit dialog's calendar.
+  cycle?: CycleSpan
   loading: boolean
   ready: boolean
   error: string | null
@@ -34,17 +39,27 @@ export function MovementList({
   movements,
   categories,
   colors,
+  onEdit,
   onDelete,
+  cycle,
   loading,
   ready,
   error,
   xpById,
   footer,
 }: Props) {
+  // The movement in the edit dialog, as it was when the dialog opened.
+  const [editing, setEditing] = useState<Movement | null>(null)
   const [deleting, setDeleting] = useState<number | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   const names = new Map(categories.map((c) => [c.id, c.name]))
+
+  async function save(id: number, input: MovementInput) {
+    setNotice('')
+    await onEdit(id, input)
+    setNotice('Movement updated')
+  }
 
   async function remove(id: number) {
     setDeleting(id)
@@ -127,20 +142,45 @@ export function MovementList({
                     <span className="xp">+{xpById.get(m.id)} XP</span>
                   )}
                 </div>
-                <button
-                  className="delete-button"
-                  type="button"
-                  disabled={deleting !== null || loading}
-                  aria-busy={deleting === m.id}
-                  aria-label={`Delete ${m.note || name}`}
-                  onClick={() => void remove(m.id)}
-                >
-                  <Icon>{TRASH}</Icon>
-                </button>
+                <div className="row-actions">
+                  {/* Not disabled while the list reloads: closing the dialog
+                      hands focus back to this button, which a disabled
+                      button could not take. */}
+                  <button
+                    className="row-button"
+                    type="button"
+                    disabled={deleting !== null}
+                    aria-label={`Edit ${m.note || name}`}
+                    onClick={() => setEditing(m)}
+                  >
+                    <Icon>{PENCIL}</Icon>
+                  </button>
+                  <button
+                    className="row-button delete-button"
+                    type="button"
+                    disabled={deleting !== null || loading}
+                    aria-busy={deleting === m.id}
+                    aria-label={`Delete ${m.note || name}`}
+                    onClick={() => void remove(m.id)}
+                  >
+                    <Icon>{TRASH}</Icon>
+                  </button>
+                </div>
               </li>
             )
           })}
         </ul>
+      )}
+      {editing && (
+        <MovementEditDialog
+          key={editing.id}
+          movement={editing}
+          categories={categories}
+          colors={colors}
+          cycle={cycle}
+          onSave={(input) => save(editing.id, input)}
+          onClose={() => setEditing(null)}
+        />
       )}
       {footer}
     </section>

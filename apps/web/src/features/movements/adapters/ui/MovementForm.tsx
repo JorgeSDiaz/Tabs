@@ -1,20 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ChangeEvent, FormEvent } from 'react'
-import { CategoryChip } from '../../../categories/adapters/ui/CategoryChip'
+import type { FormEvent } from 'react'
 import type { Category } from '../../../categories/domain/category'
-import { forDirection } from '../../../categories/domain/category'
-import { colorFor } from '../../../categories/domain/categoryColors'
 import { errorMessage } from '../../../../shared/lib/error'
 import { today } from '../../../../shared/lib/money'
-import { CHEVRON_DOWN, Icon } from '../../../../shared/ui/Icon'
 import type { Direction, MovementInput } from '../../domain/movement'
-import { DateField } from './DateField'
+import { toInput } from '../../domain/movementDraft'
+import type { MovementDraft } from '../../domain/movementDraft'
 import type { CycleSpan } from './DateField'
-
-const TYPES: { value: Direction; label: string }[] = [
-  { value: 'out', label: 'Spent' },
-  { value: 'in', label: 'Received' },
-]
+import { MovementFields } from './MovementFields'
 
 type Props = {
   categories: Category[]
@@ -38,12 +31,15 @@ export function MovementForm({
   savedXp,
   cycle,
 }: Props) {
-  const [amount, setAmount] = useState('')
-  const [direction, setDirection] = useState<Direction>('out')
-  const [categoryId, setCategoryId] = useState<number | ''>('')
-  // Kept after a save, so the next movement starts on the date just used.
-  const [date, setDate] = useState(today())
-  const [note, setNote] = useState('')
+  // Direction, category and date are kept after a save, so the next
+  // movement starts on the setup just used.
+  const [draft, setDraft] = useState<MovementDraft>(() => ({
+    amount: '',
+    direction: 'out',
+    categoryId: '',
+    date: today(),
+    note: '',
+  }))
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -68,13 +64,9 @@ export function MovementForm({
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
 
-    const cents = Math.round(Number(amount) * 100)
-    if (!Number.isFinite(cents) || cents <= 0) {
-      setError('Amount must be a positive number')
-      return
-    }
-    if (categoryId === '') {
-      setError('Pick a category')
+    const result = toInput(draft)
+    if (!result.ok) {
+      setError(result.message)
       return
     }
 
@@ -82,15 +74,8 @@ export function MovementForm({
     setSaved(false)
     setError(null)
     try {
-      await onSubmit({
-        amount_cents: cents,
-        direction,
-        category_id: categoryId,
-        occurred_on: date,
-        note,
-      })
-      setAmount('')
-      setNote('')
+      await onSubmit(result.input)
+      setDraft((current) => ({ ...current, amount: '', note: '' }))
       setSaved(true)
       amountRef.current?.focus()
     } catch (err) {
@@ -100,28 +85,13 @@ export function MovementForm({
     }
   }
 
-  function handleCategoryChange(event: ChangeEvent<HTMLSelectElement>) {
-    if (event.target.value === 'create') {
-      // The command never selects a category: clear any prior selection
-      // (state and displayed option) so a cancel leaves the placeholder,
-      // and open the modal for the current direction.
-      event.target.value = ''
-      setCategoryId('')
-      setNewName('')
-      setCreateError(null)
-      setCreating(true)
-      return
-    }
-    setCategoryId(Number(event.target.value))
-  }
-
   async function handleCreateSubmit(event: FormEvent) {
     event.preventDefault()
     setBusyCreate(true)
     setCreateError(null)
     try {
-      const created = await onCreateCategory(newName, direction)
-      setCategoryId(created.id)
+      const created = await onCreateCategory(newName, draft.direction)
+      setDraft((current) => ({ ...current, categoryId: created.id }))
       dialogRef.current?.close()
     } catch (err) {
       setCreateError(errorMessage(err))
@@ -130,15 +100,12 @@ export function MovementForm({
     }
   }
 
-  const selected = categories.find((c) => c.id === categoryId)
-
   return (
     <>
       <form
         className="movement-form"
         aria-label="Record a movement"
         onSubmit={handleSubmit}
-        onChange={() => setSaved(false)}
       >
         <span className="form-status" role="status">
           {busy
@@ -150,103 +117,24 @@ export function MovementForm({
               : ''}
         </span>
         <div className="entry-fields">
-          <fieldset className="type-field">
-            <legend>Type</legend>
-            <div className="type-toggle">
-              {TYPES.map((type) => (
-                <label key={type.value}>
-                  <input
-                    className="visually-hidden"
-                    type="radio"
-                    name="direction"
-                    value={type.value}
-                    checked={direction === type.value}
-                    onChange={() => {
-                      setDirection(type.value)
-                      // The filtered lists are disjoint; keep a selected
-                      // category across the switch and the form would submit
-                      // a pairing the API rejects.
-                      setCategoryId('')
-                    }}
-                  />
-                  <span>{type.label}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <label className="amount-field">
-            Amount
-            <span className="amount-input">
-              <span aria-hidden="true">$</span>
-              <input
-                ref={amountRef}
-                type="number"
-                inputMode="decimal"
-                min="0.01"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                placeholder="0"
-              />
-            </span>
-          </label>
-          <label>
-            <span id="movement-category-label">Category</span>
-            <span className="category-select">
-              {selected ? (
-                <CategoryChip
-                  small
-                  name={selected.name}
-                  color={colorFor(colors, selected.id)}
-                />
-              ) : (
-                <span className="category-chip small unset" aria-hidden="true" />
-              )}
-              <select
-                aria-labelledby="movement-category-label"
-                value={categoryId}
-                onChange={handleCategoryChange}
-                required
-                disabled={categoriesLoading}
-              >
-                <option value="" disabled>
-                  {categoriesLoading
-                    ? 'Loading categories…'
-                    : 'Choose a category'}
-                </option>
-                {forDirection(categories, direction).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-                <option value="create">Create new…</option>
-              </select>
-              <span className="select-chevron">
-                <Icon size={20}>{CHEVRON_DOWN}</Icon>
-              </span>
-            </span>
-          </label>
-          <DateField
-            value={date}
-            onChange={(picked) => {
-              setDate(picked)
-              // The calendar's buttons fire no form change event.
+          <MovementFields
+            draft={draft}
+            onChange={(next) => {
+              setDraft(next)
               setSaved(false)
             }}
+            categories={categories}
+            colors={colors}
+            categoriesLoading={categoriesLoading}
             cycle={cycle}
+            amountRef={amountRef}
+            onCreateCategory={() => {
+              // Opens the modal for the current direction.
+              setNewName('')
+              setCreateError(null)
+              setCreating(true)
+            }}
           />
-          <label className="note-field">
-            <span>
-              Note <span className="optional">(optional)</span>
-            </span>
-            <input
-              type="text"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="What was it for?"
-            />
-          </label>
           <button
             className="primary-button log-button"
             type="submit"
@@ -270,7 +158,8 @@ export function MovementForm({
       >
         <h3 id="category-dialog-title">New category</h3>
         <p className="dialog-description">
-          A home for this kind of {direction === 'in' ? 'income' : 'expense'}.
+          A home for this kind of{' '}
+          {draft.direction === 'in' ? 'income' : 'expense'}.
         </p>
         <form onSubmit={handleCreateSubmit}>
           <label>

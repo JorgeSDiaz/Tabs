@@ -19,7 +19,7 @@ func NewService(repo ports.Repository, settings cyclesports.SettingsReader) *Ser
 	return &Service{repo: repo, settings: settings}
 }
 
-type RecordInput struct {
+type MovementInput struct {
 	AmountCents int64
 	Direction   domain.Direction
 	CategoryID  int64
@@ -27,12 +27,22 @@ type RecordInput struct {
 	Note        string
 }
 
-func (s *Service) Record(ctx context.Context, in RecordInput) (domain.Movement, error) {
+func (s *Service) Record(ctx context.Context, in MovementInput) (domain.Movement, error) {
 	m, err := domain.NewMovement(in.AmountCents, in.Direction, in.CategoryID, in.OccurredOn, in.Note)
 	if err != nil {
 		return domain.Movement{}, err
 	}
 	return s.repo.Create(ctx, m)
+}
+
+// Update replaces every editable field of the movement with the given id.
+// It validates through the same constructor as Record.
+func (s *Service) Update(ctx context.Context, id int64, in MovementInput) (domain.Movement, error) {
+	m, err := domain.NewMovement(in.AmountCents, in.Direction, in.CategoryID, in.OccurredOn, in.Note)
+	if err != nil {
+		return domain.Movement{}, err
+	}
+	return s.repo.Update(ctx, id, m)
 }
 
 func (s *Service) ListActive(ctx context.Context) ([]domain.Movement, error) {

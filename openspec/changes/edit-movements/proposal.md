@@ -56,8 +56,13 @@ way to correct an entry in place.
   `updateMovement` API call. The entry form's fields are shared with the
   dialog rather than copied. `MovementList` gains the edit control, and
   `App.tsx` wires the edit into the existing refresh path.
+- **Shared API client:** one response check, so a failed response that does
+  not carry the API's error body (a proxy's `502` while the API is down) is
+  reported as an error to every caller instead of passing as success. The
+  dialog's "Save fails" behaviour depends on it.
 - **Tests:** the first Go tests of the `movements` slice (handler and
-  repository), and a web unit test for the shared draft-to-input conversion.
+  repository), and web unit tests for the shared draft-to-input conversion
+  and the client's response check.
 - **Non-goals:**
   - Edit history, an "edited" marker, or exposing `updated_at`.
   - Bulk edits.

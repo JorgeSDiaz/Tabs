@@ -22,6 +22,7 @@ func NewHandler(svc *application.Service) *Handler {
 func (h *Handler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/movements", h.create)
 	mux.HandleFunc("GET /api/v1/movements", h.list)
+	mux.HandleFunc("PUT /api/v1/movements/{id}", h.update)
 	mux.HandleFunc("DELETE /api/v1/movements/{id}", h.delete)
 }
 
@@ -47,7 +48,7 @@ func toJSON(m domain.Movement) movementJSON {
 	}
 }
 
-type createRequest struct {
+type movementRequest struct {
 	AmountCents int64  `json:"amount_cents"`
 	Direction   string `json:"direction"`
 	CategoryID  int64  `json:"category_id"`
@@ -55,31 +56,69 @@ type createRequest struct {
 	Note        string `json:"note"`
 }
 
-func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
-	var req createRequest
+// decodeInput reads the body that recording and editing share. On a body
+// it cannot use it writes the 400 itself and reports false.
+func decodeInput(w http.ResponseWriter, r *http.Request) (application.MovementInput, bool) {
+	var req movementRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
-		return
+		return application.MovementInput{}, false
 	}
 
 	occurredOn, err := time.Parse("2006-01-02", req.OccurredOn)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "occurred_on must be a date in YYYY-MM-DD")
-		return
+		return application.MovementInput{}, false
 	}
 
-	m, err := h.svc.Record(r.Context(), application.RecordInput{
+	return application.MovementInput{
 		AmountCents: req.AmountCents,
 		Direction:   domain.Direction(req.Direction),
 		CategoryID:  req.CategoryID,
 		OccurredOn:  occurredOn,
 		Note:        req.Note,
-	})
+	}, true
+}
+
+// pathID reads the {id} path value, writing the 400 itself when it is not
+// an integer.
+func pathID(w http.ResponseWriter, r *http.Request) (int64, bool) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "id must be an integer")
+		return 0, false
+	}
+	return id, true
+}
+
+func (h *Handler) create(w http.ResponseWriter, r *http.Request) {
+	in, ok := decodeInput(w, r)
+	if !ok {
+		return
+	}
+	m, err := h.svc.Record(r.Context(), in)
 	if err != nil {
 		writeDomainError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, toJSON(m))
+}
+
+func (h *Handler) update(w http.ResponseWriter, r *http.Request) {
+	id, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	in, ok := decodeInput(w, r)
+	if !ok {
+		return
+	}
+	m, err := h.svc.Update(r.Context(), id, in)
+	if err != nil {
+		writeDomainError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, toJSON(m))
 }
 
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
@@ -97,9 +136,8 @@ func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "id must be an integer")
+	id, ok := pathID(w, r)
+	if !ok {
 		return
 	}
 	if err := h.svc.Delete(r.Context(), id); err != nil {

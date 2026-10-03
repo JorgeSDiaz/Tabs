@@ -145,6 +145,46 @@ speculative (rule 4).
 one. A correction almost always moves a movement to a category that exists.
 When it does not, the user creates it from the entry form first.
 
+### A failed response is an error even without the API's error body
+
+**Choice.** `shared/api/client.ts` registers one `openapi-fetch` response
+middleware. When a response is not ok and its body is not the API's `Error`
+JSON, the middleware replaces it with one that is: the same status, and an
+`error` message saying the server could not be reached. Call sites keep
+their `if (error) throw new Error(error.error)`.
+
+**Why.** Found while verifying the "Save fails" scenario. With the API
+stopped, the dev proxy answers `502` with an empty body, and `openapi-fetch`
+then returns no `error` at all. Every call treated that as success: the edit
+dialog closed and announced an update that was never stored. The spec's
+"cannot reach the server" case needs the failure to surface, and the check
+belongs in the one place every call goes through (rule 3).
+
+**Alternative considered.** Check `response.ok` in `updateMovement` alone.
+Rejected: the other calls would keep failing silently, and one call would
+differ from the rest for no reason a reader could see (rule 5).
+
+**What else it changes.** Recording, deleting and listing movements,
+categories, the cycle, the widgets and the habit now report such a failure
+instead of treating it as an empty success.
+
+### The ledger rail widens to 420 px
+
+**Choice.** On viewports of 1280 px and wider the ledger rail goes from 360
+to 420 px, and a row's amount sits 24 px from its description instead of 12.
+The narrower desktop rail (320 px) and the single-column layouts keep their
+widths.
+
+**Why.** The edit control took 40 px from the description column. In real
+use, next to a seven-digit amount, "Arriendo" broke after "Arriend" and
+"Transferencia" broke mid-word. Measured in the 360 px rail, they need 13
+and 33 px more. 60 px covers both and leaves room to separate the
+description from the amount.
+
+**Alternative considered.** Shrink the row's two controls below 40 px.
+Rejected: it buys 16 px, which is not enough for "Transferencia", and makes
+the targets harder to hit.
+
 ### Order relative to `paginate-movement-list`
 
 This change lands first and does not depend on the other.

@@ -57,6 +57,48 @@ paths:
                 $ref: '#/components/schemas/Error'
 
   /api/v1/movements/{id}:
+    put:
+      operationId: updateMovement
+      summary: Replace a movement's amount, direction, category, date, and note
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovementInput'
+      responses:
+        '200':
+          description: Movement updated; its id and created_at are unchanged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Movement'
+        '400':
+          description: Invalid id, amount, direction, or date; unknown
+            category; or category of the other direction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Movement not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     delete:
       operationId: deleteMovement
       summary: Delete a movement

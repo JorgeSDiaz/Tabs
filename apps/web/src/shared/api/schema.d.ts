@@ -30,7 +30,8 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        /** Replace a movement's amount, direction, category, date, and note */
+        put: operations["updateMovement"];
         post?: never;
         /** Delete a movement */
         delete: operations["deleteMovement"];
@@ -304,6 +305,59 @@ export interface operations {
             };
             /** @description Invalid amount, direction, or date; unknown category; or category of the other direction */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateMovement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MovementInput"];
+            };
+        };
+        responses: {
+            /** @description Movement updated; its id and created_at are unchanged */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Movement"];
+                };
+            };
+            /** @description Invalid id, amount, direction, or date; unknown category; or category of the other direction */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Movement not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

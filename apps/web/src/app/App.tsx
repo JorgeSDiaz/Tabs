@@ -10,6 +10,7 @@ import { sumByCategory } from '../features/dashboard/domain/widgets'
 import {
   deleteMovement,
   recordMovement,
+  updateMovement,
 } from '../features/movements/adapters/api/movements'
 import { MovementForm } from '../features/movements/adapters/ui/MovementForm'
 import { MovementList } from '../features/movements/adapters/ui/MovementList'
@@ -64,6 +65,13 @@ function App() {
     await refresh()
   }
 
+  // Leaves savedId alone: the entry form's confirmation keeps describing the
+  // last recorded movement.
+  async function handleEdit(id: number, input: MovementInput) {
+    await updateMovement(id, input)
+    await refresh()
+  }
+
   async function handleDelete(id: number) {
     await deleteMovement(id)
     await refresh()
@@ -77,6 +85,15 @@ function App() {
 
   const error = categoriesError ?? cycleError ?? movementsError ?? settingsError
   const label = cycle && cycleLabel(cycle, today())
+  // The active cycle as the calendars tint it, in the form and the dialog.
+  const cycleSpan =
+    cycle && label
+      ? {
+          starts_on: cycle.starts_on,
+          ends_on: cycle.ends_on,
+          range: label.range,
+        }
+      : undefined
 
   return (
     <main className="screen">
@@ -114,15 +131,7 @@ function App() {
         onCreateCategory={createCategory}
         categoriesLoading={categoriesLoading}
         savedXp={savedId === null ? undefined : xpById.get(savedId)}
-        cycle={
-          cycle && label
-            ? {
-                starts_on: cycle.starts_on,
-                ends_on: cycle.ends_on,
-                range: label.range,
-              }
-            : undefined
-        }
+        cycle={cycleSpan}
       />
       <div className="dashboard">
         <WidgetSection
@@ -152,7 +161,9 @@ function App() {
           movements={movements}
           categories={categories}
           colors={colors}
+          onEdit={handleEdit}
           onDelete={handleDelete}
+          cycle={cycleSpan}
           loading={movementsLoading}
           ready={movementsReady}
           error={movementsError}

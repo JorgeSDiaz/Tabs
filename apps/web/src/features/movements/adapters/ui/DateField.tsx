@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { FocusEvent, KeyboardEvent } from 'react'
 import { today } from '../../../../shared/lib/money'
 import {
@@ -45,6 +45,10 @@ export function DateField({ value, onChange, cycle }: Props) {
   // Opening and the grid's keys carry focus to the tab stop; the month
   // buttons move the tab stop and keep focus themselves.
   const moveFocus = useRef(false)
+  // The entry form and the edit dialog can be on the page together.
+  const id = useId()
+  const labelId = `${id}-label`
+  const valueId = `${id}-value`
 
   useEffect(() => {
     if (!open || !moveFocus.current) return
@@ -118,18 +122,18 @@ export function DateField({ value, onChange, cycle }: Props) {
       onKeyDown={handleKeyDown}
       onBlur={handleBlur}
     >
-      <span id="movement-date-label">Date</span>
+      <span id={labelId}>Date</span>
       <button
         ref={triggerRef}
         className="date-trigger"
         type="button"
-        aria-labelledby="movement-date-label movement-date-value"
+        aria-labelledby={`${labelId} ${valueId}`}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={toggle}
       >
         <Icon size={20}>{CALENDAR}</Icon>
-        <span id="movement-date-value">{fieldLabel(value, now)}</span>
+        <span id={valueId}>{fieldLabel(value, now)}</span>
       </button>
       {open && (
         // Focusable, so a click on its title or gaps keeps focus inside and

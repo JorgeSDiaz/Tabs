@@ -13,6 +13,15 @@ export async function recordMovement(input: MovementInput) {
   return data
 }
 
+export async function updateMovement(id: number, input: MovementInput) {
+  const { data, error } = await api.PUT('/api/v1/movements/{id}', {
+    params: { path: { id } },
+    body: input,
+  })
+  if (error) throw new Error(error.error)
+  return data
+}
+
 export async function deleteMovement(id: number) {
   const { error } = await api.DELETE('/api/v1/movements/{id}', {
     params: { path: { id } },
