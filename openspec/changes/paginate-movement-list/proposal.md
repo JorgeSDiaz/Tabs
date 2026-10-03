@@ -15,7 +15,7 @@ get their own source first.
 - **BREAKING** `GET /api/v1/movements` returns one page of the active cycle's
   movements instead of a bare array. It takes a `page` query parameter and
   returns the page's movements with the page number, the number of pages, and
-  the total number of movements in the cycle. Pages hold 20 movements, newest
+  the total number of movements in the cycle. Pages hold 6 movements, newest
   first.
 - The list still covers the active cycle only. Past cycles stay out of it.
 - `GET /api/v1/cycles/current` additionally reports, for each category with a
@@ -24,8 +24,8 @@ get their own source first.
   movement counts on the income and expense widgets, and the category colors
   come from the cycle's category totals, so they always cover the whole cycle
   whatever page the ledger shows.
-- The ledger gains a numbered pagination control: previous, next, and one
-  control per page. Its heading counts the cycle's movements, not the rows on
+- The ledger gains a numbered pagination control: previous, next, three
+  pages around the current one, and the last page. Its heading counts the cycle's movements, not the rows on
   the page.
 - After a movement is recorded the ledger shows the first page. After a
   delete or an edit it stays on its page, or moves to the last page when

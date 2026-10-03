@@ -5,17 +5,27 @@ import type { Movement } from '../domain/movement'
 
 export function useMovements() {
   const [movements, setMovements] = useState<Movement[]>([])
+  // What the last response described. `page` is the page the server
+  // returned, which is the last one when the asked page no longer exists.
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [version, setVersion] = useState(0)
+  // The page to ask for. A new object every time, so asking for the same
+  // page again still refetches.
+  const [request, setRequest] = useState({ page: 1 })
   const [loading, setLoading] = useState(true)
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-    listMovements()
+    listMovements(request.page)
       .then((data) => {
         if (!cancelled) {
-          setMovements(data)
+          setMovements(data.items)
+          setPage(data.page)
+          setTotalPages(data.total_pages)
+          setTotal(data.total)
           setError(null)
         }
       })
@@ -31,12 +41,26 @@ export function useMovements() {
     return () => {
       cancelled = true
     }
-  }, [version])
+  }, [request])
 
-  const reload = useCallback(() => {
+  const goToPage = useCallback((next: number) => {
     setLoading(true)
-    setVersion((v) => v + 1)
+    setRequest({ page: next })
   }, [])
 
-  return { movements, error, reload, loading, ready }
+  // Asks again for the page on screen, not the one last asked for: they
+  // differ after the server answered with the last page.
+  const reload = useCallback(() => goToPage(page), [goToPage, page])
+
+  return {
+    movements,
+    page,
+    totalPages,
+    total,
+    error,
+    goToPage,
+    reload,
+    loading,
+    ready,
+  }
 }

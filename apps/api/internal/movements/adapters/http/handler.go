@@ -121,18 +121,50 @@ func (h *Handler) update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, toJSON(m))
 }
 
+type pageJSON struct {
+	Items      []movementJSON `json:"items"`
+	Page       int            `json:"page"`
+	TotalPages int            `json:"total_pages"`
+	Total      int            `json:"total"`
+}
+
+// pageParam reads the page query parameter, 1 when it is absent. This is
+// the one place a page is checked to be a positive integer; it writes the
+// 400 itself when it is not.
+func pageParam(w http.ResponseWriter, r *http.Request) (int, bool) {
+	query := r.URL.Query()
+	if !query.Has("page") {
+		return 1, true
+	}
+	page, err := strconv.Atoi(query.Get("page"))
+	if err != nil || page < 1 {
+		writeError(w, http.StatusBadRequest, "page must be a positive integer")
+		return 0, false
+	}
+	return page, true
+}
+
 func (h *Handler) list(w http.ResponseWriter, r *http.Request) {
-	movements, err := h.svc.ListActive(r.Context())
+	requested, ok := pageParam(w, r)
+	if !ok {
+		return
+	}
+	page, err := h.svc.ListActive(r.Context(), requested)
 	if err != nil {
 		writeDomainError(w, err)
 		return
 	}
 
-	out := make([]movementJSON, 0, len(movements))
-	for _, m := range movements {
-		out = append(out, toJSON(m))
+	items := make([]movementJSON, 0, len(page.Items))
+	for _, m := range page.Items {
+		items = append(items, toJSON(m))
 	}
-	writeJSON(w, http.StatusOK, out)
+	writeJSON(w, http.StatusOK, pageJSON{
+		Items:      items,
+		Page:       page.Page,
+		TotalPages: page.TotalPages,
+		Total:      page.Total,
+	})
 }
 
 func (h *Handler) delete(w http.ResponseWriter, r *http.Request) {

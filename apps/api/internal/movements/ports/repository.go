@@ -11,6 +11,9 @@ type Repository interface {
 	Create(ctx context.Context, m domain.Movement) (domain.Movement, error)
 	// Update returns domain.ErrNotFound when no movement has the id.
 	Update(ctx context.Context, id int64, m domain.Movement) (domain.Movement, error)
-	ListForCycle(ctx context.Context, c cyclesdomain.Cycle) ([]domain.Movement, error)
+	CountForCycle(ctx context.Context, c cyclesdomain.Cycle) (int, error)
+	// ListForCycle returns up to limit movements after skipping offset,
+	// newest first.
+	ListForCycle(ctx context.Context, c cyclesdomain.Cycle, limit, offset int) ([]domain.Movement, error)
 	Delete(ctx context.Context, id int64) (bool, error)
 }

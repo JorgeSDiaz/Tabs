@@ -56,13 +56,24 @@ func (r *Repository) Update(ctx context.Context, id int64, m domain.Movement) (d
 	return out, nil
 }
 
-func (r *Repository) ListForCycle(ctx context.Context, c cyclesdomain.Cycle) ([]domain.Movement, error) {
+func (r *Repository) CountForCycle(ctx context.Context, c cyclesdomain.Cycle) (int, error) {
+	var total int
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM movement WHERE occurred_on >= $1 AND occurred_on < $2`,
+		formatDate(c.Start), formatDate(c.End)).Scan(&total)
+	return total, err
+}
+
+// ListForCycle orders by date and then by id, which makes the order total:
+// consecutive offsets never repeat or skip a movement.
+func (r *Repository) ListForCycle(ctx context.Context, c cyclesdomain.Cycle, limit, offset int) ([]domain.Movement, error) {
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT `+movementColumns+`
 		 FROM movement
 		 WHERE occurred_on >= $1 AND occurred_on < $2
-		 ORDER BY occurred_on DESC, id DESC`,
-		formatDate(c.Start), formatDate(c.End))
+		 ORDER BY occurred_on DESC, id DESC
+		 LIMIT $3 OFFSET $4`,
+		formatDate(c.Start), formatDate(c.End), limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -93,18 +104,30 @@ func (r *Repository) Delete(ctx context.Context, id int64) (bool, error) {
 	return n == 1, nil
 }
 
-func (r *Repository) CycleBalance(ctx context.Context, c cyclesdomain.Cycle) (cyclesdomain.Balance, error) {
-	var balance cyclesdomain.Balance
-	err := r.db.QueryRowContext(ctx,
-		`SELECT COALESCE(SUM(amount_cents) FILTER (WHERE direction = 'in'), 0),
-		        COALESCE(SUM(amount_cents) FILTER (WHERE direction = 'out'), 0)
+// CategoryTotals is the one query a cycle's sums come from: the balance is
+// derived from its rows.
+func (r *Repository) CategoryTotals(ctx context.Context, c cyclesdomain.Cycle) ([]cyclesdomain.CategoryTotal, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT category_id, direction, SUM(amount_cents) AS total_cents, COUNT(*)
 		 FROM movement
-		 WHERE occurred_on >= $1 AND occurred_on < $2`,
-		formatDate(c.Start), formatDate(c.End)).Scan(&balance.TotalIn, &balance.TotalOut)
+		 WHERE occurred_on >= $1 AND occurred_on < $2
+		 GROUP BY category_id, direction
+		 ORDER BY direction, total_cents DESC, category_id`,
+		formatDate(c.Start), formatDate(c.End))
 	if err != nil {
-		return cyclesdomain.Balance{}, err
+		return nil, err
 	}
-	return balance, nil
+	defer rows.Close()
+
+	totals := []cyclesdomain.CategoryTotal{}
+	for rows.Next() {
+		var t cyclesdomain.CategoryTotal
+		if err := rows.Scan(&t.CategoryID, &t.Direction, &t.TotalCents, &t.MovementCount); err != nil {
+			return nil, err
+		}
+		totals = append(totals, t)
+	}
+	return totals, rows.Err()
 }
 
 // categoryError turns a write's foreign-key violation into the domain

@@ -29,7 +29,11 @@ func (f *fakeRepository) Update(_ context.Context, id int64, m domain.Movement) 
 	return m, nil
 }
 
-func (f *fakeRepository) ListForCycle(context.Context, cyclesdomain.Cycle) ([]domain.Movement, error) {
+func (f *fakeRepository) CountForCycle(context.Context, cyclesdomain.Cycle) (int, error) {
+	return 0, nil
+}
+
+func (f *fakeRepository) ListForCycle(context.Context, cyclesdomain.Cycle, int, int) ([]domain.Movement, error) {
 	return nil, nil
 }
 

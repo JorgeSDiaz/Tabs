@@ -10,16 +10,17 @@ import (
 
 type Service struct {
 	settings ports.SettingsReader
-	balances ports.BalanceReader
+	totals   ports.TotalsReader
 }
 
-func NewService(settings ports.SettingsReader, balances ports.BalanceReader) *Service {
-	return &Service{settings: settings, balances: balances}
+func NewService(settings ports.SettingsReader, totals ports.TotalsReader) *Service {
+	return &Service{settings: settings, totals: totals}
 }
 
 type Current struct {
-	Cycle   domain.Cycle
-	Balance domain.Balance
+	Cycle          domain.Cycle
+	Balance        domain.Balance
+	CategoryTotals []domain.CategoryTotal
 }
 
 func (s *Service) Current(ctx context.Context) (Current, error) {
@@ -29,9 +30,9 @@ func (s *Service) Current(ctx context.Context) (Current, error) {
 	}
 	cycle := domain.ActiveAt(time.Now(), settings)
 
-	balance, err := s.balances.CycleBalance(ctx, cycle)
+	totals, err := s.totals.CategoryTotals(ctx, cycle)
 	if err != nil {
 		return Current{}, err
 	}
-	return Current{Cycle: cycle, Balance: balance}, nil
+	return Current{Cycle: cycle, Balance: domain.BalanceOf(totals), CategoryTotals: totals}, nil
 }

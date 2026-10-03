@@ -39,16 +39,31 @@ paths:
                 $ref: '#/components/schemas/Error'
     get:
       operationId: listMovements
-      summary: List the movements of the active cycle
+      summary: List one page of the active cycle's movements
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: >
+            The page to return, from 1. A page beyond the last returns the
+            last page.
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
       responses:
         '200':
-          description: Movements of the active cycle, newest first
+          description: One page of the active cycle's movements, newest first
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Movement'
+                $ref: '#/components/schemas/MovementPage'
+        '400':
+          description: page is not a positive integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
           description: Unexpected server error
           content:
@@ -300,6 +315,25 @@ components:
           type: string
           format: date-time
 
+    MovementPage:
+      type: object
+      required: [items, page, total_pages, total]
+      properties:
+        items:
+          type: array
+          description: Up to 6 movements, by date then most recently recorded
+          items:
+            $ref: '#/components/schemas/Movement'
+        page:
+          type: integer
+          description: The page returned, from 1
+        total_pages:
+          type: integer
+          description: At least 1, also for an empty cycle
+        total:
+          type: integer
+          description: Movements in the active cycle
+
     MovementInput:
       type: object
       required: [amount_cents, direction, category_id, occurred_on]
@@ -349,7 +383,7 @@ components:
 
     CurrentCycle:
       type: object
-      required: [starts_on, ends_on, balance]
+      required: [starts_on, ends_on, balance, category_totals]
       properties:
         starts_on:
           type: string
@@ -361,6 +395,31 @@ components:
           description: First day of the next cycle, exclusive
         balance:
           $ref: '#/components/schemas/Balance'
+        category_totals:
+          type: array
+          description: >
+            One entry per category with a movement in the cycle: in before
+            out, then by descending total, then by category id.
+          items:
+            $ref: '#/components/schemas/CategoryTotal'
+
+    CategoryTotal:
+      type: object
+      required: [category_id, direction, total_cents, movement_count]
+      properties:
+        category_id:
+          type: integer
+          format: int64
+        direction:
+          type: string
+          enum: [in, out]
+        total_cents:
+          type: integer
+          format: int64
+          description: Sum of the category's movements in the cycle, in cents
+        movement_count:
+          type: integer
+          description: Movements of the category in the cycle
 
     Balance:
       type: object

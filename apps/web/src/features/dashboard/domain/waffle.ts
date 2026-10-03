@@ -3,7 +3,7 @@ import {
   NEUTRAL_COLOR,
   colorFor,
 } from '../../categories/domain/categoryColors'
-import type { CategoryTotal } from './widgets'
+import type { NamedTotal } from './widgets'
 
 export const WAFFLE_SQUARES = 100
 
@@ -41,27 +41,29 @@ export type Slice = {
 // The expense slices of the waffle: the five largest categories keep
 // their own color, the rest collapse into one neutral slice.
 export function expenseSlices(
-  totals: CategoryTotal[],
+  totals: NamedTotal[],
   colors: Map<number, string>,
 ): Slice[] {
   const expenses = totals
-    .filter((total) => total.direction === 'out' && total.totalCents > 0)
-    .sort((a, b) => b.totalCents - a.totalCents || a.categoryId - b.categoryId)
+    .filter((total) => total.direction === 'out' && total.total_cents > 0)
+    .sort(
+      (a, b) => b.total_cents - a.total_cents || a.category_id - b.category_id,
+    )
   const head = expenses.slice(0, EXPENSE_PALETTE.length)
   const rest = expenses.slice(EXPENSE_PALETTE.length)
 
   const slices: Omit<Slice, 'percent' | 'squares'>[] = head.map((total) => ({
-    key: String(total.categoryId),
+    key: String(total.category_id),
     name: total.name,
-    color: colorFor(colors, total.categoryId),
-    totalCents: total.totalCents,
+    color: colorFor(colors, total.category_id),
+    totalCents: total.total_cents,
   }))
   if (rest.length > 0) {
     slices.push({
       key: 'other',
       name: `${rest.length} ${rest.length === 1 ? 'other' : 'others'}`,
       color: NEUTRAL_COLOR,
-      totalCents: rest.reduce((sum, total) => sum + total.totalCents, 0),
+      totalCents: rest.reduce((sum, total) => sum + total.total_cents, 0),
       grouped: rest.length,
     })
   }

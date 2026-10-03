@@ -6,7 +6,6 @@ import { cycleLabel } from '../features/cycles/domain/cycleLabel'
 import { WidgetPicker } from '../features/dashboard/adapters/ui/WidgetPicker'
 import { WidgetSection } from '../features/dashboard/adapters/ui/WidgetSection'
 import { useWidgetSettings } from '../features/dashboard/application/useWidgetSettings'
-import { sumByCategory } from '../features/dashboard/domain/widgets'
 import {
   deleteMovement,
   recordMovement,
@@ -38,7 +37,11 @@ function App() {
   } = useCurrentCycle()
   const {
     movements,
+    page,
+    totalPages,
+    total: movementsTotal,
     error: movementsError,
+    goToPage,
     reload: reloadMovements,
     loading: movementsLoading,
     ready: movementsReady,
@@ -55,32 +58,41 @@ function App() {
   const [savedId, setSavedId] = useState<number | null>(null)
   const xpById = useMemo(() => xpByMovement(habit), [habit])
 
-  async function refresh() {
-    await Promise.all([reloadMovements(), reloadCycle(), reloadHabit()])
+  // What every write can change besides the ledger's own page.
+  function reloadSummaries() {
+    reloadCycle()
+    reloadHabit()
   }
 
+  // The first page is where a movement dated today lands.
   async function handleSubmit(input: MovementInput) {
     const saved = await recordMovement(input)
     setSavedId(saved?.id ?? null)
-    await refresh()
+    goToPage(1)
+    reloadSummaries()
   }
 
   // Leaves savedId alone: the entry form's confirmation keeps describing the
-  // last recorded movement.
+  // last recorded movement. The ledger stays on its page; when the edit took
+  // that page's last row away, the server answers with the last page.
   async function handleEdit(id: number, input: MovementInput) {
     await updateMovement(id, input)
-    await refresh()
+    reloadMovements()
+    reloadSummaries()
   }
 
   async function handleDelete(id: number) {
     await deleteMovement(id)
-    await refresh()
+    reloadMovements()
+    reloadSummaries()
   }
 
   // One color per category, shared by the chart, the ledger and the form.
+  // It comes from the whole cycle's totals, so it is the same on every page
+  // of the ledger.
   const colors = useMemo(
-    () => categoryColors(sumByCategory(movements, categories)),
-    [movements, categories],
+    () => categoryColors(cycle?.category_totals ?? []),
+    [cycle],
   )
 
   const error = categoriesError ?? cycleError ?? movementsError ?? settingsError
@@ -142,13 +154,12 @@ function App() {
               loading={habitLoading}
             />
           }
-          ready={widgetsReady && movementsReady && !categoriesLoading}
+          ready={widgetsReady && !categoriesLoading}
           settings={settings}
           cycle={cycle}
-          movements={movements}
           categories={categories}
           colors={colors}
-          dataError={movementsError ?? categoriesError}
+          dataError={cycleError ?? categoriesError}
           unavailable={
             settingsError && !settings
               ? 'Your widgets could not be loaded.'
@@ -159,6 +170,10 @@ function App() {
         />
         <MovementList
           movements={movements}
+          page={page}
+          totalPages={totalPages}
+          total={movementsTotal}
+          onPage={goToPage}
           categories={categories}
           colors={colors}
           onEdit={handleEdit}

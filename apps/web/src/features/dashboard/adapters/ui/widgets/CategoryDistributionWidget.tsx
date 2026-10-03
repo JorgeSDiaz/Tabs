@@ -1,12 +1,13 @@
 import { formatCents } from '../../../../../shared/lib/money'
 import type { Category } from '../../../../categories/domain/category'
 import { INCOME_COLOR } from '../../../../categories/domain/categoryColors'
-import type { Movement } from '../../../../movements/domain/movement'
+import type { CategoryTotal } from '../../../../cycles/domain/cycle'
 import { expenseSlices } from '../../../domain/waffle'
-import { sumByCategory } from '../../../domain/widgets'
+import { nameTotals } from '../../../domain/widgets'
 
 type Props = {
-  movements: Movement[]
+  // The active cycle's totals, one per category with a movement.
+  totals: CategoryTotal[]
   categories: Category[]
   colors: Map<number, string>
 }
@@ -14,11 +15,11 @@ type Props = {
 const percent = (value: number) => `${value.toFixed(1)}%`
 
 export function CategoryDistributionWidget({
-  movements,
+  totals: cycleTotals,
   categories,
   colors,
 }: Props) {
-  const totals = sumByCategory(movements, categories)
+  const totals = nameTotals(cycleTotals, categories)
   const slices = expenseSlices(totals, colors)
   const income = totals.filter((total) => total.direction === 'in')
 
@@ -82,7 +83,7 @@ export function CategoryDistributionWidget({
               <h3>Money in</h3>
               <ul aria-label="Income by category">
                 {income.map((total) => (
-                  <li key={total.categoryId}>
+                  <li key={total.category_id}>
                     <span
                       className="legend-swatch"
                       style={{ background: INCOME_COLOR }}
@@ -90,7 +91,7 @@ export function CategoryDistributionWidget({
                     />
                     <span className="legend-name">{total.name}</span>
                     <span className="money">
-                      {formatCents(total.totalCents, { sign: 'always' })}
+                      {formatCents(total.total_cents, { sign: 'always' })}
                     </span>
                   </li>
                 ))}

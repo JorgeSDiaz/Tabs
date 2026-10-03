@@ -1,9 +1,13 @@
 import type { CSSProperties, ReactNode } from 'react'
 import type { Category } from '../../../categories/domain/category'
 import type { CurrentCycle } from '../../../cycles/domain/cycle'
-import type { Movement } from '../../../movements/domain/movement'
 import { bentoLayout, type Tile } from '../../domain/bentoLayout'
-import { WIDGETS, type WidgetID, type WidgetSettings } from '../../domain/widgets'
+import {
+  WIDGETS,
+  movementCount,
+  type WidgetID,
+  type WidgetSettings,
+} from '../../domain/widgets'
 import { CategoryDistributionWidget } from './widgets/CategoryDistributionWidget'
 import { NetBalanceWidget } from './widgets/NetBalanceWidget'
 import { StatTile } from './widgets/StatTile'
@@ -14,7 +18,6 @@ type Props = {
   ready: boolean
   settings: WidgetSettings | null
   cycle: CurrentCycle | null
-  movements: Movement[]
   categories: Category[]
   colors: Map<number, string>
   dataError: string | null
@@ -38,7 +41,6 @@ export function WidgetSection({
   ready,
   settings,
   cycle,
-  movements,
   categories,
   colors,
   dataError,
@@ -76,7 +78,6 @@ export function WidgetSection({
             <WidgetBody
               id={tile.id}
               cycle={cycle}
-              movements={movements}
               categories={categories}
               colors={colors}
             />
@@ -95,12 +96,11 @@ export function WidgetSection({
 type BodyProps = {
   id: WidgetID
   cycle: CurrentCycle
-  movements: Movement[]
   categories: Category[]
   colors: Map<number, string>
 }
 
-function WidgetBody({ id, cycle, movements, categories, colors }: BodyProps) {
+function WidgetBody({ id, cycle, categories, colors }: BodyProps) {
   switch (id) {
     case 'net-balance':
       return <NetBalanceWidget balance={cycle.balance} />
@@ -109,7 +109,7 @@ function WidgetBody({ id, cycle, movements, categories, colors }: BodyProps) {
         <StatTile
           label={LABELS.get(id) ?? ''}
           cents={cycle.balance.total_in}
-          count={movements.filter((m) => m.direction === 'in').length}
+          count={movementCount(cycle.category_totals, 'in')}
           tone="in"
         />
       )
@@ -118,14 +118,14 @@ function WidgetBody({ id, cycle, movements, categories, colors }: BodyProps) {
         <StatTile
           label={LABELS.get(id) ?? ''}
           cents={cycle.balance.total_out}
-          count={movements.filter((m) => m.direction === 'out').length}
+          count={movementCount(cycle.category_totals, 'out')}
           tone="out"
         />
       )
     case 'category-distribution':
       return (
         <CategoryDistributionWidget
-          movements={movements}
+          totals={cycle.category_totals}
           categories={categories}
           colors={colors}
         />

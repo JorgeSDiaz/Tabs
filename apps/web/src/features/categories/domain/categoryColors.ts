@@ -11,10 +11,11 @@ export const EXPENSE_PALETTE = [
 export const NEUTRAL_COLOR = '#8A93A5'
 export const INCOME_COLOR = 'var(--leaf)'
 
+// The fields of a cycle's category total that decide a color.
 export type ColorInput = {
-  categoryId: number
+  category_id: number
   direction: Category['direction']
-  totalCents: number
+  total_cents: number
 }
 
 // The one place a category gets its color: the waffle chart and the
@@ -23,12 +24,14 @@ export function categoryColors(totals: ColorInput[]): Map<number, string> {
   const colors = new Map<number, string>()
   const expenses = totals
     .filter((total) => total.direction === 'out')
-    .sort((a, b) => b.totalCents - a.totalCents || a.categoryId - b.categoryId)
+    .sort(
+      (a, b) => b.total_cents - a.total_cents || a.category_id - b.category_id,
+    )
   expenses.forEach((total, rank) => {
-    colors.set(total.categoryId, EXPENSE_PALETTE[rank] ?? NEUTRAL_COLOR)
+    colors.set(total.category_id, EXPENSE_PALETTE[rank] ?? NEUTRAL_COLOR)
   })
   for (const total of totals) {
-    if (total.direction === 'in') colors.set(total.categoryId, INCOME_COLOR)
+    if (total.direction === 'in') colors.set(total.category_id, INCOME_COLOR)
   }
   return colors
 }

@@ -1,17 +1,30 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CategoryChip } from '../../../categories/adapters/ui/CategoryChip'
 import type { Category } from '../../../categories/domain/category'
 import { colorFor } from '../../../categories/domain/categoryColors'
 import { formatCents } from '../../../../shared/lib/money'
 import { errorMessage } from '../../../../shared/lib/error'
-import { Icon, PENCIL, TRASH } from '../../../../shared/ui/Icon'
+import {
+  CHEVRON_LEFT,
+  CHEVRON_RIGHT,
+  Icon,
+  PENCIL,
+  TRASH,
+} from '../../../../shared/ui/Icon'
 import type { Movement, MovementInput } from '../../domain/movement'
+import { pageWindow } from '../../domain/pageWindow'
 import type { CycleSpan } from './DateField'
 import { MovementEditDialog } from './MovementEditDialog'
 
 type Props = {
+  // One page of the active cycle.
   movements: Movement[]
+  page: number
+  totalPages: number
+  // Movements in the whole cycle, not on this page.
+  total: number
+  onPage: (page: number) => void
   categories: Category[]
   colors: Map<number, string>
   onEdit: (id: number, input: MovementInput) => Promise<void>
@@ -37,6 +50,10 @@ function day(isoDate: string): string {
 
 export function MovementList({
   movements,
+  page,
+  totalPages,
+  total,
+  onPage,
   categories,
   colors,
   onEdit,
@@ -54,6 +71,37 @@ export function MovementList({
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   const names = new Map(categories.map((c) => [c.id, c.name]))
+  const list = useRef<HTMLUListElement>(null)
+  const shownPage = useRef(page)
+  // Set when the reader picks a page, so only that brings the list into
+  // view. Recording a movement also changes the page and must not pull the
+  // viewport away from the entry form.
+  const turned = useRef(false)
+
+  // Runs once the new page's rows are in: start it from its first row.
+  useEffect(() => {
+    if (loading) return
+    if (shownPage.current !== page) {
+      shownPage.current = page
+      if (list.current) {
+        list.current.scrollTop = 0
+        if (turned.current) {
+          list.current.firstElementChild?.scrollIntoView({ block: 'nearest' })
+        }
+      }
+    }
+    turned.current = false
+  }, [page, loading])
+
+  // The one place a page change is refused. The end buttons are
+  // aria-disabled, never disabled: a disabled button drops the keyboard focus
+  // it was activated with. Nothing is dimmed while a page loads, because a
+  // load is shorter than a blink and the ledger is already marked busy.
+  function turnTo(next: number) {
+    if (loading || next === page || next < 1 || next > totalPages) return
+    turned.current = true
+    onPage(next)
+  }
 
   async function save(id: number, input: MovementInput) {
     setNotice('')
@@ -85,7 +133,7 @@ export function MovementList({
         <h2 id="ledger-title">
           Movements{' '}
           <span className="count">
-            {ready && !error ? movements.length : '—'}
+            {ready && !error ? total : '—'}
           </span>
         </h2>
         <span className="ledger-status" role="status">
@@ -113,7 +161,7 @@ export function MovementList({
           </p>
         </div>
       ) : (
-        <ul className="movement-list">
+        <ul className="movement-list" ref={list}>
           {movements.map((m) => {
             const name = names.get(m.category_id) ?? 'Uncategorized'
             return (
@@ -170,6 +218,46 @@ export function MovementList({
             )
           })}
         </ul>
+      )}
+      {totalPages > 1 && movements.length > 0 && (
+        <nav className="pagination" aria-label="Movement pages">
+          <button
+            type="button"
+            aria-disabled={page === 1}
+            aria-label="Previous page"
+            onClick={() => turnTo(page - 1)}
+          >
+            <Icon size={20}>{CHEVRON_LEFT}</Icon>
+          </button>
+          <ol>
+            {pageWindow(page, totalPages).map((slot) =>
+              slot === 'gap' ? (
+                <li key="gap" className="page-gap" aria-hidden="true">
+                  …
+                </li>
+              ) : (
+                <li key={slot}>
+                  <button
+                    type="button"
+                    aria-label={`Page ${slot}`}
+                    aria-current={slot === page ? 'page' : undefined}
+                    onClick={() => turnTo(slot)}
+                  >
+                    {slot}
+                  </button>
+                </li>
+              ),
+            )}
+          </ol>
+          <button
+            type="button"
+            aria-disabled={page === totalPages}
+            aria-label="Next page"
+            onClick={() => turnTo(page + 1)}
+          >
+            <Icon size={20}>{CHEVRON_RIGHT}</Icon>
+          </button>
+        </nav>
       )}
       {editing && (
         <MovementEditDialog

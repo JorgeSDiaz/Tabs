@@ -7,7 +7,7 @@ import {
   expenseSlices,
   visibleMarks,
 } from './waffle'
-import type { CategoryTotal } from './widgets'
+import type { NamedTotal } from './widgets'
 
 const sum = (values: number[]) => values.reduce((a, b) => a + b, 0)
 
@@ -37,11 +37,12 @@ describe('allocateSquares', () => {
   })
 })
 
-const out = (categoryId: number, totalCents: number): CategoryTotal => ({
-  categoryId,
-  name: `Category ${categoryId}`,
+const out = (id: number, cents: number): NamedTotal => ({
+  category_id: id,
+  name: `Category ${id}`,
   direction: 'out',
-  totalCents,
+  total_cents: cents,
+  movement_count: 1,
 })
 
 describe('expenseSlices', () => {
@@ -63,7 +64,13 @@ describe('expenseSlices', () => {
   it('ignores income categories', () => {
     const slices = expenseSlices(
       [
-        { categoryId: 9, name: 'Salary', direction: 'in', totalCents: 9999 },
+        {
+          category_id: 9,
+          name: 'Salary',
+          direction: 'in',
+          total_cents: 9999,
+          movement_count: 1,
+        },
         out(1, 500),
       ],
       colors,

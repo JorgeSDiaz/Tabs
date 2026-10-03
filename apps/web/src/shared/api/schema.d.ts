@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List the movements of the active cycle */
+        /** List one page of the active cycle's movements */
         get: operations["listMovements"];
         put?: never;
         /** Record a movement */
@@ -135,6 +135,16 @@ export interface components {
             /** Format: date-time */
             created_at: string;
         };
+        MovementPage: {
+            /** @description Up to 6 movements, by date then most recently recorded */
+            items: components["schemas"]["Movement"][];
+            /** @description The page returned, from 1 */
+            page: number;
+            /** @description At least 1, also for an empty cycle */
+            total_pages: number;
+            /** @description Movements in the active cycle */
+            total: number;
+        };
         MovementInput: {
             /**
              * Format: int64
@@ -178,6 +188,21 @@ export interface components {
              */
             ends_on: string;
             balance: components["schemas"]["Balance"];
+            /** @description One entry per category with a movement in the cycle: in before out, then by descending total, then by category id. */
+            category_totals: components["schemas"]["CategoryTotal"][];
+        };
+        CategoryTotal: {
+            /** Format: int64 */
+            category_id: number;
+            /** @enum {string} */
+            direction: "in" | "out";
+            /**
+             * Format: int64
+             * @description Sum of the category's movements in the cycle, in cents
+             */
+            total_cents: number;
+            /** @description Movements of the category in the cycle */
+            movement_count: number;
         };
         Balance: {
             /**
@@ -254,20 +279,32 @@ export type $defs = Record<string, never>;
 export interface operations {
     listMovements: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description The page to return, from 1. A page beyond the last returns the last page. */
+                page?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Movements of the active cycle, newest first */
+            /** @description One page of the active cycle's movements, newest first */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Movement"][];
+                    "application/json": components["schemas"]["MovementPage"];
+                };
+            };
+            /** @description page is not a positive integer */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Unexpected server error */

@@ -14,7 +14,7 @@
   4. the category colors shared by the chart, the ledger and the entry form
      (`categoryColors(sumByCategory(...))` in `App.tsx`).
 - **The collision.** Once the array is one page, uses 2 to 4 are wrong:
-  they would describe 20 movements instead of the cycle. They must get a
+  they would describe 6 movements instead of the cycle. They must get a
   source that covers the whole cycle before the list can be paged.
 - **The cycle endpoint.** `GET /api/v1/cycles/current` already returns the
   cycle's balance. The cycles slice reads it through `ports.BalanceReader`,
@@ -50,18 +50,26 @@
 
 ```yaml
 MovementPage:
-  items: [Movement]     # up to 20, newest first
+  items: [Movement]     # up to 6, newest first
   page: int             # the page actually returned, from 1
   total_pages: int      # at least 1, also for an empty cycle
   total: int            # movements in the active cycle
 ```
 
-- The page size is one constant, 20, in `movements/domain`. It is not a
+- The page size is one constant, 6, in `movements/domain`. It is not a
   query parameter and not in the response: the client never needs it, because
   it is given `total_pages` (rules 2 and 3).
 - `page` that is not a positive integer is a `400`.
 - `page` greater than `total_pages` returns the last page, and `page` in the
   response says so.
+
+**Why 6.** The first implementation used 20. On a wide screen the ledger
+rail takes the bento's height and shows about six rows, so a page of 20 was
+more than three screens of scrolling inside the rail, next to a full-size
+scrollbar. Ten was tried next and still scrolled. The user chose six: a page
+is what the rail shows, with nothing to scroll. A cycle of 45 movements is
+then eight pages, which is why the control shows only some of them (see the
+frontend decision below).
 
 **Why offset.** Numbered pages need random access and a page count. Keyset
 pagination gives neither.
@@ -160,10 +168,35 @@ a second field carrying what `category_totals` already holds.
   `total`, a way to go to a page, and `reload`. It adopts the `page` the
   server returns.
 - `MovementList` renders a `<nav aria-label="Movement pages">` between the
-  rows and the XP footer: Previous, one button per page with
+  rows and the XP footer: Previous, the page buttons with
   `aria-current="page"` on the current one, Next. It is not rendered for a
-  single page, is disabled while loading, and scrolls the list to its first
-  row when the page changes.
+  single page, ignores activation while a page loads, and scrolls the list
+  to its first row when the page changes.
+- The page buttons are `1 2 3 … n`: three consecutive pages holding the
+  current one in the middle where it can be, then the last page, with an
+  ellipsis only where pages are left out. Four pages or fewer are all shown.
+  The rule is a pure function in `movements/domain`, table-tested. It is
+  never more than five cells, which fit on one row of the rail and of a
+  phone. The first page has no button of its own once the three move on: the
+  user asked for this shape, and Previous walks back.
+- The control reuses the calendar's vocabulary, the one other place the app
+  shows a row of numbers between two arrows: quiet 40 px cells with no border
+  or shadow, and the current one filled with the accent. The app's raised
+  button, repeated seven times in the rail, outweighed the rows it serves.
+  The cells stay 40 px on touch screens too, like the row buttons and the
+  calendar days: at 44 px a fifth page no longer fits on a phone's row.
+- While a page loads nothing in the control is dimmed. A load is shorter
+  than a blink, so dimming every button flashed on each page change. The
+  ledger is already marked busy and says "Updating…".
+- Six rows usually fit the rail. When they do not (long notes that wrap, or
+  a shorter rail with fewer widgets), the rows scroll behind a thin scrollbar
+  in the theme's colors with no track and no arrows, in place of the
+  browser's default one. It stays visible, at 3:1 against the panel: it is
+  the only cue that a page has more rows than the rail shows.
+- Previous on the first page and Next on the last are disabled with
+  `aria-disabled` and a guard in the click handler, not with the `disabled`
+  attribute. A `disabled` button loses keyboard focus, so reaching an end
+  with the keyboard would drop focus to the page body.
 - `App.tsx`: after a record the ledger goes to page 1; after a delete or an
   edit it reloads its page. A re-date that empties the last page is covered
   by the server clamp, like a delete.
@@ -171,9 +204,10 @@ a second field carrying what `category_totals` already holds.
   gets `cycleError ?? categoriesError` as `dataError`, not the movement
   list's error. A failed list request no longer disables the chart.
 
-**Alternative considered.** Truncating the page numbers with ellipses.
-Rejected for now: one cycle of one person is a handful of pages, and the
-control wraps (rule 2).
+**Alternative considered.** One button for every page. It was the first
+implementation, when 20 rows per page made a cycle two or three pages. At
+six rows a cycle is eight pages or more, and the buttons took a second row
+from the rail.
 
 ## Risks / Trade-offs
 
@@ -209,5 +243,6 @@ control wraps (rule 2).
 
 ## Open Questions
 
-- Is 20 the right page size for the ledger column? It is one constant, and
-  the answer comes from a cycle of use (task 6.3).
+- Is 6 the right page size for the ledger column? 20 and then 10 scrolled
+  inside the rail. It is one constant, and the answer comes from a cycle of
+  use (task 6.3), as does whether the missing first-page button is missed.

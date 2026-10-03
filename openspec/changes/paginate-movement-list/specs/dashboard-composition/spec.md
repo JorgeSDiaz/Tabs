@@ -3,11 +3,16 @@
 ## ADDED Requirements
 
 ### Requirement: Ledger is read one page at a time
-The ledger SHALL show one page of the active cycle's movements. When the
-cycle has more movements than fit on one page, the ledger SHALL show a
-pagination control with a previous control, a next control, and a numbered
-control for every page, with the current page marked. When all movements fit
-on one page, the ledger SHALL NOT show the control.
+The ledger SHALL show one page of the active cycle's movements, newest first.
+When the cycle has more movements than fit on one page, the ledger SHALL show
+a pagination control with a previous control, a next control, and numbered
+page controls, with the current page marked. When all movements fit on one
+page, the ledger SHALL NOT show the control.
+
+The numbered controls SHALL be three consecutive pages that include the
+current page, followed by the last page. Where pages are left out between
+them, the control SHALL show an ellipsis in their place. A cycle of four
+pages or fewer SHALL show a control for every page.
 
 The ledger heading SHALL state the total number of movements in the active
 cycle, not the number of rows on the page. While another page is loading, the
@@ -24,20 +29,36 @@ page in its accessible name, SHALL expose which page is current to assistive
 technology, and SHALL wrap rather than cause horizontal page scrolling.
 
 #### Scenario: Everything fits on one page
-- **WHEN** the active cycle has 20 movements or fewer
+- **WHEN** the active cycle has 6 movements or fewer
 - **THEN** the ledger lists them all and shows no pagination control
 
 #### Scenario: Several pages
 - **WHEN** the active cycle has 45 movements
-- **THEN** the ledger shows the 20 newest and a control with pages 1, 2, and
-  3, with page 1 marked as current
+- **THEN** the ledger shows the 6 newest and a control with pages 1, 2, and
+  3, an ellipsis, and page 8, with page 1 marked as current
 - **AND** the previous control is disabled
 - **AND** the ledger heading states 45
 
+#### Scenario: Numbered pages follow the current page
+- **WHEN** a ledger of 8 pages shows page 5
+- **THEN** the control shows pages 4, 5, and 6, an ellipsis, and page 8
+
+#### Scenario: No ellipsis where no page is left out
+- **WHEN** a ledger of 8 pages shows page 6
+- **THEN** the control shows pages 5, 6, 7, and 8 with no ellipsis
+
+#### Scenario: Numbered pages at the end
+- **WHEN** a ledger of 8 pages shows page 8
+- **THEN** the control shows pages 6, 7, and 8
+
+#### Scenario: Few pages are all shown
+- **WHEN** the ledger has 4 pages
+- **THEN** the control shows pages 1, 2, 3, and 4 whatever the current page
+
 #### Scenario: Moving to another page
-- **WHEN** the user activates page 3 in a ledger of 45 movements
-- **THEN** the ledger shows the 5 oldest movements from its first row
-- **AND** page 3 is marked as current, the next control is disabled, and the
+- **WHEN** the user activates page 8 in a ledger of 45 movements
+- **THEN** the ledger shows the 3 oldest movements from its first row
+- **AND** page 8 is marked as current, the next control is disabled, and the
   heading still states 45
 
 #### Scenario: Loading a page keeps the rows
@@ -52,9 +73,9 @@ technology, and SHALL wrap rather than cause horizontal page scrolling.
 - **THEN** the ledger shows page 1 with the new movement on it
 
 #### Scenario: Deleting the only row of the last page
-- **WHEN** the active cycle has 41 movements, the ledger shows page 3 with
+- **WHEN** the active cycle has 43 movements, the ledger shows page 8 with
   its single row, and the user deletes that row
-- **THEN** the ledger shows page 2 and the control lists pages 1 and 2
+- **THEN** the ledger shows page 7 and the control ends at page 7
 
 #### Scenario: Deleting on a middle page
 - **WHEN** the ledger shows page 2 of 3 and the user deletes a row
@@ -66,9 +87,9 @@ technology, and SHALL wrap rather than cause horizontal page scrolling.
 - **THEN** the ledger still shows page 2 with the row's new amount
 
 #### Scenario: Re-dating the only row of the last page
-- **WHEN** the ledger shows page 3 with its single row and the user edits
+- **WHEN** the ledger shows page 8 of 8 with its single row and the user edits
   that row's date to a day outside the active cycle
-- **THEN** the ledger shows page 2 and the control lists pages 1 and 2
+- **THEN** the ledger shows page 7 and the control ends at page 7
 
 #### Scenario: Colors agree on every page
 - **WHEN** a category appears in the distribution chart and in a row on the
@@ -77,12 +98,12 @@ technology, and SHALL wrap rather than cause horizontal page scrolling.
 
 #### Scenario: Keyboard and assistive technology
 - **WHEN** the user reaches the pagination control with the keyboard
-- **THEN** every page, previous, and next control can be focused and
+- **THEN** every shown page, previous, and next control can be focused and
   activated
 - **AND** each page control is named with its page number and the current
   page is announced as current
 
 #### Scenario: Phone viewport
-- **WHEN** a ledger with 6 pages is viewed at 375 CSS pixels wide
+- **WHEN** a ledger with 8 pages is viewed at 375 CSS pixels wide
 - **THEN** the pagination control fits within the ledger, wrapping if
   needed, without horizontal page scrolling

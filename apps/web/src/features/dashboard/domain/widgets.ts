@@ -1,6 +1,6 @@
 import type { components } from '../../../shared/api/schema'
 import type { Category } from '../../categories/domain/category'
-import type { Movement } from '../../movements/domain/movement'
+import type { CategoryTotal } from '../../cycles/domain/cycle'
 
 // The id set and the full-map requirement come from the OpenAPI schema,
 // so the catalog cannot silently drift from the server enum.
@@ -21,43 +21,31 @@ export const WIDGETS: WidgetDefinition[] = [
   { id: 'category-distribution', label: 'Category distribution' },
 ]
 
-export type CategoryTotal = {
-  categoryId: number
-  name: string
-  direction: Category['direction']
-  totalCents: number
+export type NamedTotal = CategoryTotal & { name: string }
+
+// The cycle's category totals with the names the chart shows. The server
+// sums the whole cycle and orders it ('in' first, each group by descending
+// amount); this only adds the name and keeps that order. A total whose
+// category is not in the list has no name to show and is left out.
+export function nameTotals(
+  totals: CategoryTotal[],
+  categories: Category[],
+): NamedTotal[] {
+  const names = new Map(categories.map((c) => [c.id, c.name]))
+  const out: NamedTotal[] = []
+  for (const total of totals) {
+    const name = names.get(total.category_id)
+    if (name !== undefined) out.push({ ...total, name })
+  }
+  return out
 }
 
-// Pure aggregation over the active cycle's movements the dashboard
-// already holds: only categories with at least one movement appear,
-// grouped with 'in' first, each group ordered by descending amount.
-export function sumByCategory(
-  movements: Movement[],
-  categories: Category[],
-): CategoryTotal[] {
-  const totals = new Map<number, number>()
-  for (const movement of movements) {
-    totals.set(
-      movement.category_id,
-      (totals.get(movement.category_id) ?? 0) + movement.amount_cents,
-    )
-  }
-
-  const byId = new Map(categories.map((c) => [c.id, c]))
-  const out: CategoryTotal[] = []
-  for (const [categoryId, totalCents] of totals) {
-    const category = byId.get(categoryId)
-    if (!category) continue
-    out.push({
-      categoryId,
-      name: category.name,
-      direction: category.direction,
-      totalCents,
-    })
-  }
-
-  const rank = { in: 0, out: 1 } as const
-  return out.sort(
-    (a, b) => rank[a.direction] - rank[b.direction] || b.totalCents - a.totalCents,
-  )
+// How many movements of one direction the cycle holds.
+export function movementCount(
+  totals: CategoryTotal[],
+  direction: CategoryTotal['direction'],
+): number {
+  return totals
+    .filter((total) => total.direction === direction)
+    .reduce((sum, total) => sum + total.movement_count, 0)
 }

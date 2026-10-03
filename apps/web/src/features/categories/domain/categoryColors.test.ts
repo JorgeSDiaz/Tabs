@@ -7,10 +7,10 @@ import {
   NEUTRAL_COLOR,
 } from './categoryColors'
 
-const out = (categoryId: number, totalCents: number) => ({
-  categoryId,
+const out = (id: number, cents: number) => ({
+  category_id: id,
   direction: 'out' as const,
-  totalCents,
+  total_cents: cents,
 })
 
 describe('categoryColors', () => {
@@ -46,7 +46,7 @@ describe('categoryColors', () => {
 
   it('colors income categories with the income color, outside the ranking', () => {
     const colors = categoryColors([
-      { categoryId: 9, direction: 'in', totalCents: 999999 },
+      { category_id: 9, direction: 'in', total_cents: 999999 },
       out(1, 100),
     ])
     expect(colors.get(9)).toBe(INCOME_COLOR)

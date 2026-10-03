@@ -8,7 +8,7 @@ whatever page the ledger shows and however many pages it has. Moving between
 ledger pages SHALL NOT change any widget's value.
 
 #### Scenario: More movements than one ledger page
-- **WHEN** the active cycle has 45 expense movements and the ledger shows 20
+- **WHEN** the active cycle has 45 expense movements and the ledger shows 6
   of them
 - **THEN** the total expenses widget states 45 movements and the sum of all
   45

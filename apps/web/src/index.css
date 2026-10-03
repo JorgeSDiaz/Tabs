@@ -1138,6 +1138,77 @@ svg {
   color: var(--coral-text);
   border-color: var(--coral-text);
 }
+/* Ledger pages: previous, `1 2 3 … n`, next. The cells are the calendar's
+   days again: quiet squares, the current one filled. At most five of them
+   sit between the two arrows, and they wrap before the control would grow
+   wider than the rail. */
+.pagination {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 4px;
+}
+.pagination ol {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+}
+.pagination button {
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border-color: transparent;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font-size: 14px;
+}
+/* The pages left out before the last one. Narrower than a cell, so the
+   five still fit the slimmer rail on one row. */
+.pagination .page-gap {
+  width: 20px;
+  line-height: 40px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+.pagination button:hover {
+  color: var(--text-h);
+}
+.pagination button:active {
+  box-shadow: none;
+}
+.pagination [aria-current='page'],
+.pagination [aria-current='page']:hover {
+  border-color: var(--ember);
+  background: var(--ember);
+  color: var(--ink);
+  font-weight: 800;
+}
+/* Ember on ember would hide the focus ring on the current page. */
+.pagination button:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline-color: var(--text-h);
+  outline-offset: 1px;
+}
+/* The end of the pages. aria-disabled instead of disabled, so the button
+   keeps keyboard focus: it has to look and feel as inert as a disabled one. */
+.pagination button[aria-disabled='true'],
+.pagination button[aria-disabled='true']:hover {
+  border-color: transparent;
+  color: var(--text);
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.pagination button[aria-disabled='true']:active {
+  transform: none;
+}
 .xp-rules {
   margin-top: auto;
   padding-top: 12px;
@@ -1296,6 +1367,28 @@ dialog::backdrop {
     /* Room for the focus ring and the scrollbar inside the scroller. */
     margin: -4px -12px -4px -4px;
     padding: 4px 12px 4px 4px;
+  }
+  /* A quiet scrollbar for the rail: thin, no track, no arrows. It stays
+     visible, as the only cue that a page has more rows than the rail shows. */
+  .movement-list::-webkit-scrollbar {
+    width: 6px;
+  }
+  /* Halfway from the panel to the text color: 3:1 against the panel. */
+  .movement-list::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--text) 55%, var(--surface));
+  }
+  .movement-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text);
+  }
+  /* Firefox only has the standard properties. Chromium would let them
+     override the rules above, so they are kept to browsers without those. */
+  @supports not selector(::-webkit-scrollbar) {
+    .movement-list {
+      scrollbar-width: thin;
+      scrollbar-color: color-mix(in srgb, var(--text) 55%, var(--surface))
+        transparent;
+    }
   }
 }
 

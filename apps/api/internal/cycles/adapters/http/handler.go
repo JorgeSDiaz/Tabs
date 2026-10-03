@@ -25,10 +25,18 @@ type balanceJSON struct {
 	Net      int64 `json:"net"`
 }
 
+type categoryTotalJSON struct {
+	CategoryID    int64  `json:"category_id"`
+	Direction     string `json:"direction"`
+	TotalCents    int64  `json:"total_cents"`
+	MovementCount int    `json:"movement_count"`
+}
+
 type currentJSON struct {
-	StartsOn string      `json:"starts_on"`
-	EndsOn   string      `json:"ends_on"`
-	Balance  balanceJSON `json:"balance"`
+	StartsOn       string              `json:"starts_on"`
+	EndsOn         string              `json:"ends_on"`
+	Balance        balanceJSON         `json:"balance"`
+	CategoryTotals []categoryTotalJSON `json:"category_totals"`
 }
 
 func (h *Handler) current(w http.ResponseWriter, r *http.Request) {
@@ -40,6 +48,17 @@ func (h *Handler) current(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Made, not declared, so an empty cycle encodes as [] and not null.
+	totals := make([]categoryTotalJSON, 0, len(current.CategoryTotals))
+	for _, t := range current.CategoryTotals {
+		totals = append(totals, categoryTotalJSON{
+			CategoryID:    t.CategoryID,
+			Direction:     t.Direction,
+			TotalCents:    t.TotalCents,
+			MovementCount: t.MovementCount,
+		})
+	}
+
 	// EndsOn is exclusive: the cycle runs [StartsOn, EndsOn).
 	out := currentJSON{
 		StartsOn: current.Cycle.Start.Format("2006-01-02"),
@@ -49,6 +68,7 @@ func (h *Handler) current(w http.ResponseWriter, r *http.Request) {
 			TotalOut: current.Balance.TotalOut,
 			Net:      current.Balance.Net(),
 		},
+		CategoryTotals: totals,
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

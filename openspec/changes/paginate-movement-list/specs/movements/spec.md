@@ -8,7 +8,7 @@ active financial cycle, and SHALL NOT list movements from any other cycle.
 The list SHALL be ordered by date, newest first, and among movements of the
 same date by most recently recorded first.
 
-The list SHALL be served one page at a time, 20 movements per page. Every
+The list SHALL be served one page at a time, 6 movements per page. Every
 page SHALL report its page number, the number of pages, and the total number
 of movements in the active cycle. The first page SHALL be served when no page
 is asked for. A page number beyond the last page SHALL be answered with the
@@ -34,13 +34,13 @@ rejected.
 #### Scenario: First page by default
 - **WHEN** the active cycle has 45 movements and the list is requested
   without a page
-- **THEN** the 20 newest movements are returned
-- **AND** the response reports page 1 of 3 and a total of 45
+- **THEN** the 6 newest movements are returned
+- **AND** the response reports page 1 of 8 and a total of 45
 
 #### Scenario: Pages cover every movement once
-- **WHEN** the active cycle has 45 movements and pages 1, 2, and 3 are
+- **WHEN** the active cycle has 45 movements and pages 1 to 8 are
   requested
-- **THEN** they hold 20, 20, and 5 movements
+- **THEN** pages 1 to 7 hold 6 movements each and page 8 holds 3
 - **AND** every movement of the cycle appears on exactly one of them
 
 #### Scenario: Same-day movements keep a stable order
@@ -49,8 +49,8 @@ rejected.
 - **AND** requesting the same page again returns them in the same order
 
 #### Scenario: Page beyond the last
-- **WHEN** the active cycle has 45 movements and page 9 is requested
-- **THEN** the last page is returned and the response reports page 3
+- **WHEN** the active cycle has 45 movements and page 12 is requested
+- **THEN** the last page is returned and the response reports page 8
 
 #### Scenario: Invalid page is rejected
 - **WHEN** the list is requested with page 0, a negative page, or a page
