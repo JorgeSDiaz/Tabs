@@ -4,6 +4,7 @@ import { CategoryChip } from '../../../categories/adapters/ui/CategoryChip'
 import type { Category } from '../../../categories/domain/category'
 import { forDirection } from '../../../categories/domain/category'
 import { colorFor } from '../../../categories/domain/categoryColors'
+import { amountDigits, groupAmount } from '../../../../shared/lib/money'
 import { CHEVRON_DOWN, Icon } from '../../../../shared/ui/Icon'
 import type { Direction } from '../../domain/movement'
 import type { MovementDraft } from '../../domain/movementDraft'
@@ -44,6 +45,28 @@ export function MovementFields({
   // The entry form and the edit dialog can be on the page together.
   const id = useId()
   const categoryLabelId = `${id}-category-label`
+
+  function handleAmountChange(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.target
+    const amount = amountDigits(input.value)
+    const shown = groupAmount(amount)
+    // Regrouping shifts the text under the caret, so it is put back after
+    // the same digits. Written to the input before the draft changes, so
+    // the next render finds the value already there and leaves the caret.
+    const caretAt = input.selectionStart ?? input.value.length
+    const kept = amountDigits(input.value.slice(0, caretAt)).length
+    let caret = 0
+    for (let seen = 0; seen < kept && caret < shown.length; caret++) {
+      if (shown[caret] !== ',') seen++
+    }
+    // A deleted comma comes straight back. A forward delete must land past
+    // it, or the key would remove the same comma forever.
+    const { inputType } = event.nativeEvent as InputEvent
+    if (inputType === 'deleteContentForward' && shown[caret] === ',') caret++
+    input.value = shown
+    input.setSelectionRange(caret, caret)
+    onChange({ ...draft, amount })
+  }
 
   function handleCategoryChange(event: ChangeEvent<HTMLSelectElement>) {
     if (event.target.value === 'create') {
@@ -90,12 +113,10 @@ export function MovementFields({
           <span aria-hidden="true">$</span>
           <input
             ref={amountRef}
-            type="number"
+            type="text"
             inputMode="decimal"
-            min="0.01"
-            step="0.01"
-            value={draft.amount}
-            onChange={(e) => onChange({ ...draft, amount: e.target.value })}
+            value={groupAmount(draft.amount)}
+            onChange={handleAmountChange}
             required
             placeholder="0"
           />

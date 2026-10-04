@@ -13,6 +13,29 @@ export function formatCents(
   return `${prefix}$${digits}`
 }
 
+// What an amount field keeps of typed or pasted text: the digits and the
+// first period, two cents digits at most, no leading zeros. Still text, so a
+// half-typed "1234." survives.
+export function amountDigits(text: string): string {
+  const kept = text.replace(/[^\d.]/g, '')
+  const period = kept.indexOf('.')
+  const whole = (period < 0 ? kept : kept.slice(0, period)).replace(
+    /^0+(?=\d)/,
+    '',
+  )
+  if (period < 0) return whole
+  const cents = kept.slice(period + 1).replaceAll('.', '').slice(0, 2)
+  return `${whole || '0'}.${cents}`
+}
+
+// The same separators as `formatCents`, on an amount that is still being
+// typed.
+export function groupAmount(digits: string): string {
+  const [whole, cents] = digits.split('.')
+  const grouped = whole.replace(/\B(?=(\d{3})+$)/g, ',')
+  return cents === undefined ? grouped : `${grouped}.${cents}`
+}
+
 // Amounts never wrap; a long one steps down in size instead. By character
 // count, because the box does not know how long the text is.
 export function amountScale(text: string): 'l' | 'm' | 's' {

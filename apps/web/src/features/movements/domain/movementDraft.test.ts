@@ -74,7 +74,7 @@ describe('toDraft', () => {
 
   it('shows the amount as the user would type it', () => {
     expect(toDraft(movement)).toEqual(draft)
-    expect(toDraft({ ...movement, amount_cents: 1050 }).amount).toBe('10.5')
+    expect(toDraft({ ...movement, amount_cents: 1050 }).amount).toBe('10.50')
   })
 
   it('round-trips a movement back to the same input', () => {

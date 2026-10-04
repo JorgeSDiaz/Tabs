@@ -36,8 +36,10 @@ export function toInput(draft: MovementDraft): DraftResult {
 }
 
 export function toDraft(movement: Movement): MovementDraft {
+  const cents = movement.amount_cents
   return {
-    amount: String(movement.amount_cents / 100),
+    // Cents only when they are not zero, as the ledger shows the amount.
+    amount: (cents / 100).toFixed(cents % 100 === 0 ? 0 : 2),
     direction: movement.direction,
     categoryId: movement.category_id,
     date: movement.occurred_on,

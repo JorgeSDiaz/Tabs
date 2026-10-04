@@ -401,13 +401,6 @@ svg {
   font-family: inherit;
   font-size: 24px;
   font-weight: 600;
-  appearance: textfield;
-  -moz-appearance: textfield;
-}
-.amount-input input::-webkit-outer-spin-button,
-.amount-input input::-webkit-inner-spin-button {
-  appearance: none;
-  margin: 0;
 }
 .category-select {
   position: relative;
@@ -1423,6 +1416,11 @@ dialog::backdrop {
   }
   .entry-fields {
     column-gap: 12px;
+  }
+  /* A grouped seven-digit amount has to fit the narrowest amount column. */
+  .movement-form .amount-input {
+    gap: 6px;
+    padding: 0 10px;
   }
   .type-toggle label > span {
     padding: 0 12px;
