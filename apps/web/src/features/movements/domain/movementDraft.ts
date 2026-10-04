@@ -1,7 +1,9 @@
+import { forDirection } from '../../categories/domain/category'
+import type { Category } from '../../categories/domain/category'
 import type { Direction, Movement, MovementInput } from './movement'
 
-// A movement while it is being typed: the amount is still text, and the
-// category may not be chosen yet.
+// A movement while it is being typed: the amount is still text, and an
+// empty category stands for the first one of the direction.
 export type MovementDraft = {
   amount: string
   direction: Direction
@@ -14,13 +16,29 @@ export type DraftResult =
   | { ok: true; input: MovementInput }
   | { ok: false; message: string }
 
+// The one place a draft's category is decided: its own while it belongs to
+// the draft's direction, otherwise the first one listed for that direction.
+// Empty only while there is no category to fall back on.
+export function resolveCategoryId(
+  draft: MovementDraft,
+  categories: Category[],
+): number | '' {
+  const choices = forDirection(categories, draft.direction)
+  if (choices.some((c) => c.id === draft.categoryId)) return draft.categoryId
+  return choices[0]?.id ?? ''
+}
+
 // The one place the entry form and the edit dialog decide what may be sent.
-export function toInput(draft: MovementDraft): DraftResult {
+export function toInput(
+  draft: MovementDraft,
+  categories: Category[],
+): DraftResult {
   const cents = Math.round(Number(draft.amount) * 100)
   if (!Number.isFinite(cents) || cents <= 0) {
     return { ok: false, message: 'Amount must be a positive number' }
   }
-  if (draft.categoryId === '') {
+  const categoryId = resolveCategoryId(draft, categories)
+  if (categoryId === '') {
     return { ok: false, message: 'Pick a category' }
   }
   return {
@@ -28,7 +46,7 @@ export function toInput(draft: MovementDraft): DraftResult {
     input: {
       amount_cents: cents,
       direction: draft.direction,
-      category_id: draft.categoryId,
+      category_id: categoryId,
       occurred_on: draft.date,
       note: draft.note,
     },

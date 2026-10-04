@@ -48,7 +48,7 @@ export function MovementEditDialog({
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
 
-    const result = toInput(draft)
+    const result = toInput(draft, categories)
     if (!result.ok) {
       setError(result.message)
       return

@@ -146,7 +146,9 @@ paths:
       summary: List all categories
       responses:
         '200':
-          description: Seeded and user-created categories, in sort order
+          description: >-
+            Seeded and user-created categories in listing order: within a
+            direction by sort_order, with that direction's catch-all last
           content:
             application/json:
               schema:

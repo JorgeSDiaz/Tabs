@@ -1,12 +1,11 @@
 import { useId } from 'react'
 import type { ChangeEvent, Ref } from 'react'
-import { CategoryChip } from '../../../categories/adapters/ui/CategoryChip'
+import { CategorySelect } from '../../../categories/adapters/ui/CategorySelect'
 import type { Category } from '../../../categories/domain/category'
 import { forDirection } from '../../../categories/domain/category'
-import { colorFor } from '../../../categories/domain/categoryColors'
 import { amountDigits, groupAmount } from '../../../../shared/lib/money'
-import { CHEVRON_DOWN, Icon } from '../../../../shared/ui/Icon'
 import type { Direction } from '../../domain/movement'
+import { resolveCategoryId } from '../../domain/movementDraft'
 import type { MovementDraft } from '../../domain/movementDraft'
 import { DateField } from './DateField'
 import type { CycleSpan } from './DateField'
@@ -44,7 +43,6 @@ export function MovementFields({
 }: Props) {
   // The entry form and the edit dialog can be on the page together.
   const id = useId()
-  const categoryLabelId = `${id}-category-label`
 
   function handleAmountChange(event: ChangeEvent<HTMLInputElement>) {
     const input = event.target
@@ -68,20 +66,6 @@ export function MovementFields({
     onChange({ ...draft, amount })
   }
 
-  function handleCategoryChange(event: ChangeEvent<HTMLSelectElement>) {
-    if (event.target.value === 'create') {
-      // The command never selects a category: clear any prior selection
-      // (state and displayed option) so a cancel leaves the placeholder.
-      event.target.value = ''
-      onChange({ ...draft, categoryId: '' })
-      onCreateCategory?.()
-      return
-    }
-    onChange({ ...draft, categoryId: Number(event.target.value) })
-  }
-
-  const selected = categories.find((c) => c.id === draft.categoryId)
-
   return (
     <>
       <fieldset className="type-field">
@@ -96,9 +80,8 @@ export function MovementFields({
                 value={type.value}
                 checked={draft.direction === type.value}
                 onChange={() =>
-                  // The filtered lists are disjoint; keep a selected
-                  // category across the switch and the form would submit
-                  // a pairing the API rejects.
+                  // An empty category is the first one of the new
+                  // direction, whatever was selected under the other.
                   onChange({ ...draft, direction: type.value, categoryId: '' })
                 }
               />
@@ -122,40 +105,14 @@ export function MovementFields({
           />
         </span>
       </label>
-      <label>
-        <span id={categoryLabelId}>Category</span>
-        <span className="category-select">
-          {selected ? (
-            <CategoryChip
-              small
-              name={selected.name}
-              color={colorFor(colors, selected.id)}
-            />
-          ) : (
-            <span className="category-chip small unset" aria-hidden="true" />
-          )}
-          <select
-            aria-labelledby={categoryLabelId}
-            value={draft.categoryId}
-            onChange={handleCategoryChange}
-            required
-            disabled={categoriesLoading}
-          >
-            <option value="" disabled>
-              {categoriesLoading ? 'Loading categories…' : 'Choose a category'}
-            </option>
-            {forDirection(categories, draft.direction).map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-            {onCreateCategory && <option value="create">Create new…</option>}
-          </select>
-          <span className="select-chevron">
-            <Icon size={20}>{CHEVRON_DOWN}</Icon>
-          </span>
-        </span>
-      </label>
+      <CategorySelect
+        categories={forDirection(categories, draft.direction)}
+        value={resolveCategoryId(draft, categories)}
+        colors={colors}
+        onChange={(categoryId) => onChange({ ...draft, categoryId })}
+        onCreate={onCreateCategory}
+        loading={categoriesLoading}
+      />
       <DateField
         value={draft.date}
         onChange={(date) => onChange({ ...draft, date })}

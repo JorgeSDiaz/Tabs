@@ -16,12 +16,18 @@ export function useCategories() {
   }, [])
 
   // Creation errors propagate to the caller (the form's modal) so they can
-  // be shown there; the state is the single owner of the list, so the new
-  // category is offered by every dropdown right away.
+  // be shown there. The server owns the listing order, so the list is read
+  // again rather than patched here; if that read fails, the new category is
+  // appended so it can still be used, and the order is right on next load.
   const create = useCallback(
     async (name: string, direction: Category['direction']) => {
       const created = await createCategory(name, direction)
-      setCategories((prev) => [...prev, created])
+      try {
+        setCategories(await listCategories())
+      } catch (err) {
+        setCategories((prev) => [...prev, created])
+        setError(errorMessage(err))
+      }
       return created
     },
     [],

@@ -460,7 +460,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Seeded and user-created categories, in sort order */
+            /** @description Seeded and user-created categories in listing order: within a direction by sort_order, with that direction's catch-all last */
             200: {
                 headers: {
                     [name: string]: unknown;

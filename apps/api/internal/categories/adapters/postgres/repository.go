@@ -18,9 +18,11 @@ func NewRepository(db *sql.DB) *Repository {
 	return &Repository{db: db}
 }
 
+// List is the one place the listing order is decided: a direction's
+// catch-all goes after every other category, whatever its sort_order.
 func (r *Repository) List(ctx context.Context) ([]domain.Category, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, name, direction, sort_order FROM category ORDER BY sort_order, name`)
+		`SELECT id, name, direction, sort_order FROM category ORDER BY catch_all, sort_order, name`)
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +39,8 @@ func (r *Repository) List(ctx context.Context) ([]domain.Category, error) {
 	return categories, rows.Err()
 }
 
-// Create sorts the new category after every existing one, so seeded
-// entries keep their order and created ones append to their direction.
+// Create gives the new category the next sort_order, so it lists after
+// every category already there except the catch-all, which List keeps last.
 func (r *Repository) Create(ctx context.Context, c domain.Category) (domain.Category, error) {
 	var out domain.Category
 	err := r.db.QueryRowContext(ctx,

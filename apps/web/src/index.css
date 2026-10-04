@@ -402,29 +402,71 @@ svg {
   font-size: 24px;
   font-weight: 600;
 }
-.category-select {
-  position: relative;
-  display: block;
+.category-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
 }
-.category-select select {
-  appearance: none;
-  padding: 0 36px 0 48px;
+
+/* Category list popover, on the calendar's surface. The active row is the
+   one the keys act on; the selected one carries a check, not just a tint. */
+.category-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  min-width: 100%;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  max-height: min(432px, 60dvh);
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-panel);
+  background: var(--popover);
+  color: var(--text-h);
   font-size: 14px;
+  font-weight: 700;
+  list-style: none;
+}
+.category-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.category-list li.active {
+  background: var(--cycle-tint);
+}
+.category-list li[aria-selected='true'] {
   font-weight: 800;
 }
-.category-select .category-chip {
-  position: absolute;
-  left: 12px;
-  top: 12px;
-  pointer-events: none;
+.category-list .category-name {
+  overflow: visible;
+  overflow-wrap: anywhere;
 }
-.select-chevron {
-  position: absolute;
-  right: 14px;
-  top: 16px;
-  display: flex;
+.category-list .create-row {
+  position: relative;
+  margin-top: 13px;
   color: var(--text-soft);
-  pointer-events: none;
+}
+.category-list .create-row::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 4px;
+  right: 4px;
+  border-top: 1px solid var(--control-border);
+}
+.create-row .category-chip {
+  color: var(--text-h);
 }
 .category-chip {
   flex-shrink: 0;
@@ -443,7 +485,8 @@ svg {
 .category-chip.unset {
   background: var(--control-border);
 }
-.date-field {
+.date-field,
+.category-field {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -454,7 +497,8 @@ svg {
   font-weight: 800;
 }
 /* The field reads as an input, not as a raised button. */
-.date-trigger {
+.date-trigger,
+.category-trigger {
   justify-content: flex-start;
   width: 100%;
   min-height: 52px;
@@ -463,12 +507,21 @@ svg {
   font-size: 15px;
   font-weight: 800;
 }
-.date-trigger[aria-expanded='true'] {
+.date-trigger[aria-expanded='true'],
+.category-trigger[aria-expanded='true'] {
   border-color: var(--ember);
 }
-.date-trigger:active:not(:disabled) {
+.date-trigger:active:not(:disabled),
+.category-trigger:active:not(:disabled) {
   transform: none;
   box-shadow: none;
+}
+.category-trigger {
+  padding: 0 12px;
+  font-size: 14px;
+}
+.category-trigger > svg {
+  color: var(--text-soft);
 }
 
 /* Calendar popover. Its lighter surface and border are the whole elevation;
@@ -1269,6 +1322,12 @@ dialog::backdrop {
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
+/* Short enough to open over the fields below it and no wider than its
+   field, so the dialog itself does not start to scroll. */
+.movement-edit-modal .category-list {
+  max-width: 100%;
+  max-height: 232px;
+}
 .form-row {
   display: flex;
   gap: 12px;
@@ -1476,6 +1535,10 @@ dialog::backdrop {
   }
   .entry-fields {
     grid-template-columns: minmax(0, 1fr);
+  }
+  /* The field is the full column here; the list has no room to be wider. */
+  .category-list {
+    max-width: 100%;
   }
   .streak-heading h2 {
     font-size: 26px;
