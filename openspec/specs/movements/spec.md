@@ -207,19 +207,3 @@ change.
   (03:00 UTC on September 30)
 - **THEN** the active cycle is still the one that started on August 30,
   not the cycle starting September 30
-
-### Requirement: Seeded categories
-The system SHALL provide a fixed set of categories, seeded at setup,
-each carrying its own direction (`in` or `out`), that movements can be
-recorded against. This change does not let the user create, rename, or
-deactivate categories.
-
-#### Scenario: Seeded categories are available for recording
-- **WHEN** the user records a movement
-- **THEN** they can choose from the seeded categories
-
-#### Scenario: Seed covers both directions
-- **WHEN** setup has run
-- **THEN** every seeded category has direction `in` or `out`, with
-  Income, Salary, Bonus, Reimbursement, and Gift as `in` and the nine
-  expense categories as `out`
