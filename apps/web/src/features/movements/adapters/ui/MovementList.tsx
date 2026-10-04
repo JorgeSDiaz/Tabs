@@ -164,6 +164,9 @@ export function MovementList({
         <ul className="movement-list" ref={list}>
           {movements.map((m) => {
             const name = names.get(m.category_id) ?? 'Uncategorized'
+            // A note of only spaces is no note: the category titles the row.
+            const note = m.note.trim()
+            const title = note || name
             return (
               <li key={m.id}>
                 <CategoryChip
@@ -171,11 +174,9 @@ export function MovementList({
                   color={colorFor(colors, m.category_id)}
                 />
                 <div className="movement-detail">
-                  <span className={m.note ? 'note' : 'note muted'}>
-                    {m.note || 'No note'}
-                  </span>
-                  <span className="category">
-                    {name} ·{' '}
+                  <span className="movement-title">{title}</span>
+                  <span className="movement-meta">
+                    {note && `${name} · `}
                     <time dateTime={m.occurred_on}>{day(m.occurred_on)}</time>
                   </span>
                 </div>
@@ -198,7 +199,7 @@ export function MovementList({
                     className="row-button"
                     type="button"
                     disabled={deleting !== null}
-                    aria-label={`Edit ${m.note || name}`}
+                    aria-label={`Edit ${title}`}
                     onClick={() => setEditing(m)}
                   >
                     <Icon>{PENCIL}</Icon>
@@ -208,7 +209,7 @@ export function MovementList({
                     type="button"
                     disabled={deleting !== null || loading}
                     aria-busy={deleting === m.id}
-                    aria-label={`Delete ${m.note || name}`}
+                    aria-label={`Delete ${title}`}
                     onClick={() => void remove(m.id)}
                   >
                     <Icon>{TRASH}</Icon>
