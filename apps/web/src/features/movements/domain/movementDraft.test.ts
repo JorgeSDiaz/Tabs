@@ -5,10 +5,10 @@ import { resolveCategoryId, toDraft, toInput } from './movementDraft'
 import type { MovementDraft } from './movementDraft'
 
 const categories: Category[] = [
-  { id: 1, name: 'Salary', direction: 'in', sort_order: 1 },
-  { id: 2, name: 'Gift', direction: 'in', sort_order: 2 },
-  { id: 3, name: 'Housing', direction: 'out', sort_order: 3 },
-  { id: 4, name: 'Groceries', direction: 'out', sort_order: 4 },
+  { id: 1, name: 'Salary', direction: 'in', color: '#6b8cff', icon: 'tag', sort_order: 1 },
+  { id: 2, name: 'Gift', direction: 'in', color: '#6b8cff', icon: 'tag', sort_order: 2 },
+  { id: 3, name: 'Housing', direction: 'out', color: '#6b8cff', icon: 'tag', sort_order: 3 },
+  { id: 4, name: 'Groceries', direction: 'out', color: '#6b8cff', icon: 'tag', sort_order: 4 },
 ]
 
 const draft: MovementDraft = {

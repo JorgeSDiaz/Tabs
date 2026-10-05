@@ -19,7 +19,7 @@ type Props = {
   draft: MovementDraft
   onChange: (draft: MovementDraft) => void
   categories: Category[]
-  // The chart's category colors, so the chip here matches the chart.
+  // Every category's own color, as the ledger and the chart read it.
   colors: Map<number, string>
   categoriesLoading?: boolean
   // The active cycle, tinted in the calendar; absent until it has loaded.

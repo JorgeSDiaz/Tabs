@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CategoryChip } from '../../../categories/adapters/ui/CategoryChip'
+import { GENERIC_ICON } from '../../../categories/domain/category'
 import type { Category } from '../../../categories/domain/category'
 import { colorFor } from '../../../categories/domain/categoryColors'
 import { formatCents } from '../../../../shared/lib/money'
@@ -70,7 +71,7 @@ export function MovementList({
   const [deleting, setDeleting] = useState<number | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
-  const names = new Map(categories.map((c) => [c.id, c.name]))
+  const byId = new Map(categories.map((c) => [c.id, c]))
   const list = useRef<HTMLUListElement>(null)
   const shownPage = useRef(page)
   // Set when the reader picks a page, so only that brings the list into
@@ -163,14 +164,15 @@ export function MovementList({
       ) : (
         <ul className="movement-list" ref={list}>
           {movements.map((m) => {
-            const name = names.get(m.category_id) ?? 'Uncategorized'
+            const category = byId.get(m.category_id)
+            const name = category?.name ?? 'Uncategorized'
             // A note of only spaces is no note: the category titles the row.
             const note = m.note.trim()
             const title = note || name
             return (
               <li key={m.id}>
                 <CategoryChip
-                  name={name}
+                  icon={category?.icon ?? GENERIC_ICON}
                   color={colorFor(colors, m.category_id)}
                 />
                 <div className="movement-detail">

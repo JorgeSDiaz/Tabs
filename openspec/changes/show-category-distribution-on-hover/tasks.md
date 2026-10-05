@@ -1,0 +1,27 @@
+# Tasks
+
+## 1. Slice data
+
+- [x] 1.1 In `domain/waffle.ts`, replace `Slice.grouped` with `members?: { name: string; percent: number }[]`, filled by `expenseSlices` for the neutral slice only: one entry per grouped category, in the existing sort order, each percentage taken over all of the cycle's expenses. Update the `Slice` and `expenseSlices` comments. Verify that a grep for `grouped` in `apps/web/src/features/dashboard` finds nothing.
+- [x] 1.2 In `waffle.test.ts`, replace the `grouped` assertion with assertions on `members` — the names and order of the grouped categories, and that the members' percentages add up to the neutral slice's percentage (`toBeCloseTo`) — and assert that the five colored slices have no `members`. Verify with `pnpm --filter web test`.
+
+## 2. Widget
+
+- [x] 2.1 In `CategoryDistributionWidget.tsx`, delete the legend list. Render the 100 squares as flat children of `.waffle`, each carrying its slice key; render the first square of each slice as a `<button>` whose accessible name is the slice's name, percentage and amount (plus each member's name and percentage for the neutral slice), and keep the other squares `aria-hidden`. Change `.waffle` from `role="img"` to `role="group"` labelled "Expense distribution". Verify with the accessibility tree that the grid exposes one button per slice and nothing else.
+- [x] 2.2 Add the three inputs from design.md, each holding a slice key — hovered (mouse pointers only, cleared on leaving the grid, not on crossing a gap), focused (keyboard focus only), selected (toggled by click or tap on any square of the block, reflected as `aria-pressed` on its button) — and derive the shown slice as the one whose key is `hovered ?? focused ?? selected`, showing nothing when no slice has that key. Verify in the browser that hovering, tabbing and clicking each change the shown block as the spec's scenarios describe.
+- [x] 2.3 Add the detail area in the legend's place in `.waffle-layout`: swatch, name, percentage and amount of the shown slice, a second line listing the members for the neutral slice, and the instruction "Hover, tap or tab to a block to see its category" when no slice is shown. Mark the squares that do not belong to the shown slice so they can be dimmed. Verify that the "Money in" row, the heading's category count, the empty state and the no-expenses message render exactly as before.
+
+## 3. Styles
+
+- [x] 3.1 In `index.css`, delete `.legend`, `.legend li`, `.legend-percent`, `.legend-amount` and their rules inside the `@container (max-width: 559px)` block. Rename `.legend-swatch` and `.legend-name` to `.distribution-swatch` and `.distribution-name` in `index.css` and in the widget. Verify that a grep for `legend` in `apps/web/src` finds only the streak panel's `day-legend` and the entry form's `<legend>`.
+- [x] 3.2 Add `.distribution-detail` (no reserved height: one line for the instruction or a colored block, growing for the neutral block's members; beside the grid in a wide tile, under it in a narrow one; instruction in the muted text color), reset the global `button` styles on the square that is a button so it matches the other squares in both the wide and the narrow tile, dim the squares outside the shown slice, and put the opacity transition inside the existing `prefers-reduced-motion: no-preference` block. Verify that the button square has the same computed size as its neighbours and that the tile's height is the same with and without a colored block shown.
+
+## 4. Verify the usable slice
+
+- [x] 4.1 Run `openspec validate show-category-distribution-on-hover --strict`, `pnpm --filter web test`, `pnpm --filter web lint` and `pnpm --filter web build`; all must pass.
+- [x] 4.2 Against disposable local data with expenses in at least seven categories and two income categories, confirm at 1280 by 800: no category list next to the grid; the instruction shows at rest; hovering any square of a block shows that category's name, percentage and amount and dims the other blocks; leaving the grid returns to the instruction; the neutral block's detail states the count, the combined percentage and amount, and each grouped category with its percentage; and the header, form, every widget and the first ledger rows fit without scrolling the page.
+- [x] 4.3 With the keyboard only, confirm that Tab stops once per block from the largest to the neutral one, that each stop shows a visible focus ring and its detail, that Enter and Space toggle the selection, and that each stop's accessible name states the name, percentage and amount.
+- [x] 4.4 At 375 px wide with touch emulation, confirm that tapping a block shows its detail and keeps it after the tap, tapping another block replaces it, tapping the shown block again returns to the instruction, and nothing overflows or scrolls the page horizontally.
+- [x] 4.5 Select a block, then record an expense that changes the order of the blocks, and another that moves the selected category into the neutral block. Confirm the detail keeps naming the selected category after the first, shows the instruction after the second, and that the widget never errors.
+- [x] 4.6 At 200 percent zoom with a long category name and a large amount, confirm the detail wraps without overlapping the grid or the "Money in" row and that the amount stays on one line.
+- [ ] 4.7 Use the dashboard for real entries through a few days of a cycle and record here whether reading categories one block at a time is enough, or whether the always-visible legend is missed.

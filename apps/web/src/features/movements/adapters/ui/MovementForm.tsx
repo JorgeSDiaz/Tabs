@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import type { Category } from '../../../categories/domain/category'
+import { GENERIC_ICON } from '../../../categories/domain/category'
+import type {
+  Category,
+  CategoryInput,
+} from '../../../categories/domain/category'
+import { leastUsedColor } from '../../../categories/domain/categoryColors'
 import { errorMessage } from '../../../../shared/lib/error'
 import { today } from '../../../../shared/lib/money'
-import type { Direction, MovementInput } from '../../domain/movement'
+import type { MovementInput } from '../../domain/movement'
 import { toInput } from '../../domain/movementDraft'
 import type { MovementDraft } from '../../domain/movementDraft'
 import type { CycleSpan } from './DateField'
@@ -11,10 +16,10 @@ import { MovementFields } from './MovementFields'
 
 type Props = {
   categories: Category[]
-  // The chart's category colors, so the chip here matches the chart.
+  // Every category's own color, as the ledger and the chart read it.
   colors: Map<number, string>
   onSubmit: (input: MovementInput) => Promise<void>
-  onCreateCategory: (name: string, direction: Direction) => Promise<Category>
+  onCreateCategory: (input: CategoryInput) => Promise<Category>
   categoriesLoading: boolean
   // XP the last saved movement earned, once the habit has refreshed.
   savedXp?: number
@@ -90,7 +95,15 @@ export function MovementForm({
     setBusyCreate(true)
     setCreateError(null)
     try {
-      const created = await onCreateCategory(newName, draft.direction)
+      // The modal asks only for a name: the color is the one the fewest
+      // categories have, and the icon the generic one. Both are changed
+      // later on the categories screen.
+      const created = await onCreateCategory({
+        name: newName,
+        direction: draft.direction,
+        color: leastUsedColor(categories),
+        icon: GENERIC_ICON,
+      })
       setDraft((current) => ({ ...current, categoryId: created.id }))
       dialogRef.current?.close()
     } catch (err) {

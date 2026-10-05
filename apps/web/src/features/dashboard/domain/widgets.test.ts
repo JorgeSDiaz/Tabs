@@ -4,9 +4,9 @@ import type { CategoryTotal } from '../../cycles/domain/cycle'
 import { movementCount, nameTotals } from './widgets'
 
 const categories: Category[] = [
-  { id: 1, name: 'Salary', direction: 'in', sort_order: 1 },
-  { id: 3, name: 'Housing', direction: 'out', sort_order: 3 },
-  { id: 4, name: 'Groceries', direction: 'out', sort_order: 4 },
+  { id: 1, name: 'Salary', direction: 'in', color: '#6b8cff', icon: 'tag', sort_order: 1 },
+  { id: 3, name: 'Housing', direction: 'out', color: '#6b8cff', icon: 'tag', sort_order: 3 },
+  { id: 4, name: 'Groceries', direction: 'out', color: '#6b8cff', icon: 'tag', sort_order: 4 },
 ]
 
 // As the server orders them: in first, then by descending total.

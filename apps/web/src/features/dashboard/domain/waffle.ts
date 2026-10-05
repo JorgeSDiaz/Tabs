@@ -1,5 +1,4 @@
 import {
-  EXPENSE_PALETTE,
   NEUTRAL_COLOR,
   colorFor,
 } from '../../categories/domain/categoryColors'
@@ -34,12 +33,18 @@ export type Slice = {
   totalCents: number
   percent: number
   squares: number
-  // Set only on the neutral group: how many categories it holds.
-  grouped?: number
+  // Set only on the neutral group: the categories it holds, largest
+  // first, each with its share of all the cycle's expenses.
+  members?: { name: string; percent: number }[]
 }
 
-// The expense slices of the waffle: the five largest categories keep
-// their own color, the rest collapse into one neutral slice.
+// How many categories the chart draws on their own. A rule about the
+// chart, not about how many colors there are to give out.
+export const OWN_SLICES = 5
+
+// The expense slices of the waffle: the five largest categories are drawn
+// in their own color, the rest collapse into one neutral slice that names
+// them.
 export function expenseSlices(
   totals: NamedTotal[],
   colors: Map<number, string>,
@@ -49,8 +54,10 @@ export function expenseSlices(
     .sort(
       (a, b) => b.total_cents - a.total_cents || a.category_id - b.category_id,
     )
-  const head = expenses.slice(0, EXPENSE_PALETTE.length)
-  const rest = expenses.slice(EXPENSE_PALETTE.length)
+  const head = expenses.slice(0, OWN_SLICES)
+  const rest = expenses.slice(OWN_SLICES)
+  const sum = expenses.reduce((a, total) => a + total.total_cents, 0)
+  const share = (cents: number) => (sum === 0 ? 0 : (cents / sum) * 100)
 
   const slices: Omit<Slice, 'percent' | 'squares'>[] = head.map((total) => ({
     key: String(total.category_id),
@@ -63,16 +70,18 @@ export function expenseSlices(
       key: 'other',
       name: `${rest.length} ${rest.length === 1 ? 'other' : 'others'}`,
       color: NEUTRAL_COLOR,
-      totalCents: rest.reduce((sum, total) => sum + total.total_cents, 0),
-      grouped: rest.length,
+      totalCents: rest.reduce((a, total) => a + total.total_cents, 0),
+      members: rest.map((total) => ({
+        name: total.name,
+        percent: share(total.total_cents),
+      })),
     })
   }
 
-  const sum = slices.reduce((a, s) => a + s.totalCents, 0)
   const squares = allocateSquares(slices.map((s) => s.totalCents))
   return slices.map((slice, i) => ({
     ...slice,
-    percent: sum === 0 ? 0 : (slice.totalCents / sum) * 100,
+    percent: share(slice.totalCents),
     squares: squares[i],
   }))
 }

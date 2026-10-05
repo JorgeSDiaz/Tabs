@@ -1,7 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { errorMessage } from '../../../shared/lib/error'
-import { createCategory, listCategories } from '../adapters/api/categories'
-import type { Category } from '../domain/category'
+import {
+  createCategory,
+  deleteCategory,
+  listCategories,
+  updateCategory,
+} from '../adapters/api/categories'
+import type {
+  Category,
+  CategoryDetails,
+  CategoryInput,
+} from '../domain/category'
 
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([])
@@ -15,23 +24,51 @@ export function useCategories() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Creation errors propagate to the caller (the form's modal) so they can
-  // be shown there. The server owns the listing order, so the list is read
-  // again rather than patched here; if that read fails, the new category is
-  // appended so it can still be used, and the order is right on next load.
-  const create = useCallback(
-    async (name: string, direction: Category['direction']) => {
-      const created = await createCategory(name, direction)
+  // After every write the list is read again rather than patched: the
+  // server owns the listing order. If that read fails the write still
+  // happened, so `patch` keeps the list usable and the order is right on
+  // the next load.
+  const refresh = useCallback(
+    async (patch: (previous: Category[]) => Category[]) => {
       try {
         setCategories(await listCategories())
+        setError(null)
       } catch (err) {
-        setCategories((prev) => [...prev, created])
+        setCategories(patch)
         setError(errorMessage(err))
       }
-      return created
     },
     [],
   )
 
-  return { categories, error, create, loading }
+  // The errors of a write propagate to the caller, the dialog it was made
+  // from, so they are shown there.
+  const create = useCallback(
+    async (input: CategoryInput) => {
+      const created = await createCategory(input)
+      await refresh((previous) => [...previous, created])
+      return created
+    },
+    [refresh],
+  )
+
+  const update = useCallback(
+    async (id: number, details: CategoryDetails) => {
+      const updated = await updateCategory(id, details)
+      await refresh((previous) =>
+        previous.map((c) => (c.id === id ? updated : c)),
+      )
+    },
+    [refresh],
+  )
+
+  const remove = useCallback(
+    async (id: number) => {
+      await deleteCategory(id)
+      await refresh((previous) => previous.filter((c) => c.id !== id))
+    },
+    [refresh],
+  )
+
+  return { categories, error, create, update, remove, loading }
 }

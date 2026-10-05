@@ -178,13 +178,103 @@ paths:
               schema:
                 $ref: '#/components/schemas/Category'
         '400':
-          description: Blank name or invalid direction
+          description: Blank name, invalid direction, invalid color, or blank icon
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
           description: A category with that name already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/categories/{id}:
+    put:
+      operationId: updateCategory
+      summary: Replace a category's name, color, and icon
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpdate'
+      responses:
+        '200':
+          description: >-
+            Category updated; its id, direction, and place in the listing are
+            unchanged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          description: Invalid id, blank name, invalid color, or blank icon
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Another category has that name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      operationId: deleteCategory
+      summary: Delete a category that no movement uses
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Category deleted
+        '400':
+          description: Invalid id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: >-
+            The category has movements, is the catch-all of its direction, or
+            is the last category of its direction; the error says which
           content:
             application/json:
               schema:
@@ -359,7 +449,7 @@ components:
 
     Category:
       type: object
-      required: [id, name, direction, sort_order]
+      required: [id, name, direction, color, icon, sort_order]
       properties:
         id:
           type: integer
@@ -370,18 +460,44 @@ components:
           type: string
           enum: [in, out]
           description: Only movements with this direction may use the category
+        color:
+          type: string
+          pattern: '^#[0-9a-f]{6}$'
+          description: The category's own color, as lowercase #rrggbb
+        icon:
+          type: string
+          description: >-
+            The name of an icon in the web's icon set; a name the web does
+            not know draws the generic icon
         sort_order:
           type: integer
 
     CategoryInput:
       type: object
-      required: [name, direction]
+      required: [name, direction, color, icon]
       properties:
         name:
           type: string
         direction:
           type: string
           enum: [in, out]
+        color:
+          type: string
+          pattern: '^#[0-9a-fA-F]{6}$'
+        icon:
+          type: string
+
+    CategoryUpdate:
+      type: object
+      required: [name, color, icon]
+      properties:
+        name:
+          type: string
+        color:
+          type: string
+          pattern: '^#[0-9a-fA-F]{6}$'
+        icon:
+          type: string
 
     CurrentCycle:
       type: object

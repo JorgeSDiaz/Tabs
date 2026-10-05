@@ -48,6 +48,12 @@ export const SLIDERS = (
     <circle cx="10" cy="17" r="2" />
   </>
 )
+export const TAG = (
+  <>
+    <path d="M3 12V4h8l10 10-8 8z" />
+    <circle cx="7.5" cy="8.5" r="1" />
+  </>
+)
 export const TRASH = (
   <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" />
 )

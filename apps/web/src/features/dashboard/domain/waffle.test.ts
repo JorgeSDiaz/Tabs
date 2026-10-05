@@ -46,7 +46,11 @@ const out = (id: number, cents: number): NamedTotal => ({
 })
 
 describe('expenseSlices', () => {
-  const colors = new Map<number, string>()
+  // Each category's own color: the ones drawn alone keep it, whatever
+  // their rank; the grouped ones give it up for the neutral color.
+  const colors = new Map(
+    [1, 2, 3, 4, 5, 6, 7, 9].map((id) => [id, '#00000' + id]),
+  )
 
   it('keeps five categories separate and groups the rest as neutral', () => {
     const slices = expenseSlices(
@@ -54,11 +58,42 @@ describe('expenseSlices', () => {
       colors,
     )
     expect(slices).toHaveLength(6)
+    expect(slices.slice(0, 5).map((s) => s.color)).toEqual([
+      '#000001',
+      '#000002',
+      '#000003',
+      '#000004',
+      '#000005',
+    ])
     const other = slices[5]
     expect(other.color).toBe(NEUTRAL_COLOR)
-    expect(other.grouped).toBe(2)
     expect(other.name).toBe('2 others')
     expect(sum(slices.map((s) => s.squares))).toBe(WAFFLE_SQUARES)
+  })
+
+  it('names the categories in the neutral slice, largest first, with their shares', () => {
+    const slices = expenseSlices(
+      [7, 3, 6, 1, 5, 2, 4].map((id) => out(id, 1000 - id)),
+      colors,
+    )
+    const other = slices[5]
+    expect(other.members?.map((m) => m.name)).toEqual([
+      'Category 6',
+      'Category 7',
+    ])
+    expect(sum(other.members!.map((m) => m.percent))).toBeCloseTo(
+      other.percent,
+    )
+    for (const slice of slices.slice(0, 5)) {
+      expect(slice.members).toBeUndefined()
+    }
+  })
+
+  it('draws a category in its own color whatever its rank', () => {
+    const ranked = (first: number) =>
+      expenseSlices([out(first, 900), out(first === 1 ? 2 : 1, 100)], colors)
+    expect(ranked(1).find((s) => s.key === '2')?.color).toBe('#000002')
+    expect(ranked(2).find((s) => s.key === '2')?.color).toBe('#000002')
   })
 
   it('ignores income categories', () => {

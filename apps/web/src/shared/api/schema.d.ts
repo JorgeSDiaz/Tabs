@@ -58,6 +58,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/categories/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a category's name, color, and icon */
+        put: operations["updateCategory"];
+        post?: never;
+        /** Delete a category that no movement uses */
+        delete: operations["deleteCategory"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cycles/current": {
         parameters: {
             query?: never;
@@ -169,12 +187,23 @@ export interface components {
              * @enum {string}
              */
             direction: "in" | "out";
+            /** @description The category's own color, as lowercase */
+            color: string;
+            /** @description The name of an icon in the web's icon set; a name the web does not know draws the generic icon */
+            icon: string;
             sort_order: number;
         };
         CategoryInput: {
             name: string;
             /** @enum {string} */
             direction: "in" | "out";
+            color: string;
+            icon: string;
+        };
+        CategoryUpdate: {
+            name: string;
+            color: string;
+            icon: string;
         };
         CurrentCycle: {
             /**
@@ -502,7 +531,7 @@ export interface operations {
                     "application/json": components["schemas"]["Category"];
                 };
             };
-            /** @description Blank name or invalid direction */
+            /** @description Blank name, invalid direction, invalid color, or blank icon */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -512,6 +541,124 @@ export interface operations {
                 };
             };
             /** @description A category with that name already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryUpdate"];
+            };
+        };
+        responses: {
+            /** @description Category updated; its id, direction, and place in the listing are unchanged */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"];
+                };
+            };
+            /** @description Invalid id, blank name, invalid color, or blank icon */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Category not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Another category has that name */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteCategory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Category deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid id */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Category not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The category has movements, is the catch-all of its direction, or is the last category of its direction; the error says which */
             409: {
                 headers: {
                     [name: string]: unknown;

@@ -13,7 +13,7 @@ type Props = {
   // The choices, already narrowed to one direction, in listing order.
   categories: Category[]
   value: number | ''
-  // The chart's category colors, so the chips here match the chart.
+  // Every category's own color, as the ledger and the chart read it.
   colors: Map<number, string>
   onChange: (categoryId: number) => void
   // When given, the list ends with "Create new…", which calls it.
@@ -162,7 +162,7 @@ export function CategorySelect({
         {selected ? (
           <CategoryChip
             small
-            name={selected.name}
+            icon={selected.icon}
             color={colorFor(colors, selected.id)}
           />
         ) : (
@@ -195,7 +195,7 @@ export function CategorySelect({
             >
               <CategoryChip
                 small
-                name={category.name}
+                icon={category.icon}
                 color={colorFor(colors, category.id)}
               />
               <span className="category-name">{category.name}</span>
