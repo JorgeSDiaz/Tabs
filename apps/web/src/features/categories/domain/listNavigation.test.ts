@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { firstStartingWith, stepRow } from './listNavigation'
+import { firstStartingWith, matching, stepRow } from './listNavigation'
 
 describe('stepRow', () => {
   it('moves one row at a time', () => {
@@ -51,5 +51,59 @@ describe('firstStartingWith', () => {
     expect(firstStartingWith(names, 'z')).toBe(-1)
     expect(firstStartingWith(names, 'hx')).toBe(-1)
     expect(firstStartingWith(names, '')).toBe(-1)
+  })
+
+  it('ignores accents on either side', () => {
+    expect(firstStartingWith(['Café', 'Salud'], 'cafe')).toBe(0)
+    expect(firstStartingWith(['Cafe', 'Salud'], 'café')).toBe(0)
+  })
+})
+
+describe('matching', () => {
+  const seeded = [
+    'Housing',
+    'Groceries',
+    'Eating out',
+    'Transport',
+    'Utilities',
+    'Health',
+    'Entertainment',
+    'Other',
+  ].map((name) => ({ name }))
+  const names = (text: string, entries = seeded) =>
+    matching(entries, text).map((entry) => entry.name)
+
+  it('keeps the names that contain the text, in the order given', () => {
+    expect(names('ea')).toEqual(['Eating out', 'Health'])
+  })
+
+  it('leaves a name that starts with the text to be found among them', () => {
+    const kept = names('t')
+    expect(kept).toEqual([
+      'Eating out',
+      'Transport',
+      'Utilities',
+      'Health',
+      'Entertainment',
+      'Other',
+    ])
+    expect(kept[firstStartingWith(kept, 't')]).toBe('Transport')
+  })
+
+  it('ignores case and accents on either side', () => {
+    expect(names('CAFE', [{ name: 'Café' }])).toEqual(['Café'])
+    expect(names('café', [{ name: 'CAFE' }])).toEqual(['CAFE'])
+  })
+
+  it('matches a space inside a name', () => {
+    expect(names('eating o')).toEqual(['Eating out'])
+  })
+
+  it('keeps every entry for an empty text', () => {
+    expect(names('')).toHaveLength(seeded.length)
+  })
+
+  it('keeps none when no name contains the text', () => {
+    expect(names('zz')).toEqual([])
   })
 })

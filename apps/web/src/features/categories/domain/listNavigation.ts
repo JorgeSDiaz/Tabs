@@ -20,10 +20,25 @@ export function stepRow(
   }
 }
 
-// The first name that starts with the typed letters, whatever their case.
+// A name as the search compares it: lowercased, with its accents removed.
+function fold(name: string): string {
+  return name.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+}
+
+// The entries whose name contains the typed text, whatever its case or
+// accents, in the order given. An empty text keeps them all.
+export function matching<T extends { name: string }>(
+  entries: T[],
+  typed: string,
+): T[] {
+  const sought = fold(typed)
+  return entries.filter((entry) => fold(entry.name).includes(sought))
+}
+
+// The first name that starts with the typed text, compared the same way.
 // -1 when none does.
 export function firstStartingWith(names: string[], typed: string): number {
-  const prefix = typed.toLowerCase()
+  const prefix = fold(typed)
   if (prefix === '') return -1
-  return names.findIndex((name) => name.toLowerCase().startsWith(prefix))
+  return names.findIndex((name) => fold(name).startsWith(prefix))
 }

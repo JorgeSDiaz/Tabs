@@ -439,20 +439,52 @@ svg {
   text-overflow: ellipsis;
 }
 
-/* Category list popover, on the calendar's surface. The active row is the
-   one the keys act on; the selected one carries a check, not just a tint. */
-.category-list {
+/* A quiet scrollbar for the lists that scroll inside a panel: thin, no
+   track, no arrows. It stays visible, as the only cue that there are more
+   rows than the list shows. Each list sets the thumb against its own
+   surface, part of the way to the text color: 3:1 against that surface. */
+.movement-list {
+  --scroll-thumb: color-mix(in srgb, var(--text) 55%, var(--surface));
+}
+.movement-list::-webkit-scrollbar,
+.category-choices::-webkit-scrollbar {
+  width: 6px;
+}
+.movement-list::-webkit-scrollbar-thumb,
+.category-choices::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: var(--scroll-thumb);
+}
+.movement-list::-webkit-scrollbar-thumb:hover,
+.category-choices::-webkit-scrollbar-thumb:hover {
+  background: var(--text);
+}
+/* Firefox only has the standard properties. Chromium would let them
+   override the rules above, so they are kept to browsers without those. */
+@supports not selector(::-webkit-scrollbar) {
+  .movement-list,
+  .category-choices {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
+}
+
+/* Category popover, on the calendar's surface: the search box, the choices,
+   and "Create new…" under them. Only the choices scroll. */
+.category-popover {
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
   z-index: 10;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   min-width: 100%;
   width: max-content;
   max-width: min(320px, calc(100vw - 32px));
-  max-height: min(432px, 60dvh);
-  overflow-y: auto;
-  margin: 0;
+  max-height: min(478px, 60dvh);
+  /* Kept off the screen's edge when the page scrolls to show all of it. */
+  scroll-margin: 8px;
   padding: 6px;
   border: 1px solid var(--control-border);
   border-radius: var(--radius-panel);
@@ -460,9 +492,61 @@ svg {
   color: var(--text-h);
   font-size: 14px;
   font-weight: 700;
-  list-style: none;
 }
-.category-list li {
+/* The box is the bordered part; the input inside it is bare, as in the
+   amount field. */
+.category-search {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  margin-bottom: 6px;
+  padding: 0 10px;
+  border: 2px solid var(--control-border);
+  border-radius: 10px;
+  background: var(--field);
+  color: var(--text);
+  cursor: text;
+}
+.category-search:focus-within {
+  border-color: var(--ember);
+}
+/* No width of its own, so the popover is as wide as its longest name. */
+.category-search input {
+  flex: 1;
+  width: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+}
+/* Takes no room until it has something to say. */
+.category-empty:not(:empty) {
+  padding: 10px 8px;
+  color: var(--text);
+  font-weight: 600;
+}
+.category-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+/* The scrollbar sits in the popover's padding, clear of the rows. */
+.category-choices {
+  --scroll-thumb: color-mix(in srgb, var(--text) 60%, var(--popover));
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-right: -4px;
+  padding-right: 4px;
+}
+/* The active row is the one the keys act on; the selected one carries a
+   check, not just a tint. */
+.category-row {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -471,22 +555,24 @@ svg {
   border-radius: 10px;
   cursor: pointer;
 }
-.category-list li.active {
+.category-row.active {
   background: var(--cycle-tint);
 }
-.category-list li[aria-selected='true'] {
+.category-row[aria-selected='true'] {
   font-weight: 800;
 }
-.category-list .category-name {
+.category-row .category-name {
   overflow: visible;
   overflow-wrap: anywhere;
 }
-.category-list .create-row {
+/* Pinned under the choices, on its own side of a rule. */
+.create-row {
+  flex-shrink: 0;
   position: relative;
   margin-top: 13px;
   color: var(--text-soft);
 }
-.category-list .create-row::before {
+.create-row::before {
   content: '';
   position: absolute;
   top: -7px;
@@ -1355,9 +1441,9 @@ dialog::backdrop {
 }
 /* Short enough to open over the fields below it and no wider than its
    field, so the dialog itself does not start to scroll. */
-.movement-edit-modal .category-list {
+.movement-edit-modal .category-popover {
   max-width: 100%;
-  max-height: 232px;
+  max-height: 278px;
 }
 .form-row {
   display: flex;
@@ -1624,28 +1710,6 @@ dialog::backdrop {
     margin: -4px -12px -4px -4px;
     padding: 4px 12px 4px 4px;
   }
-  /* A quiet scrollbar for the rail: thin, no track, no arrows. It stays
-     visible, as the only cue that a page has more rows than the rail shows. */
-  .movement-list::-webkit-scrollbar {
-    width: 6px;
-  }
-  /* Halfway from the panel to the text color: 3:1 against the panel. */
-  .movement-list::-webkit-scrollbar-thumb {
-    border-radius: 3px;
-    background: color-mix(in srgb, var(--text) 55%, var(--surface));
-  }
-  .movement-list::-webkit-scrollbar-thumb:hover {
-    background: var(--text);
-  }
-  /* Firefox only has the standard properties. Chromium would let them
-     override the rules above, so they are kept to browsers without those. */
-  @supports not selector(::-webkit-scrollbar) {
-    .movement-list {
-      scrollbar-width: thin;
-      scrollbar-color: color-mix(in srgb, var(--text) 55%, var(--surface))
-        transparent;
-    }
-  }
 }
 
 /* Full-width rail: room to set a row's amount apart from its description. */
@@ -1744,7 +1808,7 @@ dialog::backdrop {
     grid-template-columns: minmax(0, 1fr);
   }
   /* The field is the full column here; the list has no room to be wider. */
-  .category-list {
+  .category-popover {
     max-width: 100%;
   }
   .streak-heading h2 {
